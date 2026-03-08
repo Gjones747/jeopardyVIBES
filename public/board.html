@@ -103,6 +103,68 @@
     opacity: 0.6;
   }
 
+  .fj-overlay {
+    position: fixed; inset: 0; z-index: 400;
+    background: linear-gradient(160deg, #04057a 0%, #000080 50%, #000 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px; padding: 40px;
+  }
+  .fj-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(2rem, 6vw, 5rem);
+    font-weight: 700; color: var(--bright-gold);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 40px rgba(255,215,0,0.6);
+    text-align: center;
+  }
+  .fj-category {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.4rem, 4vw, 3.5rem);
+    color: white; text-align: center;
+    letter-spacing: 0.08em;
+  }
+  .fj-clue {
+    font-family: 'Lato', sans-serif;
+    font-size: clamp(1rem, 3vw, 2.2rem);
+    color: white; text-align: center;
+    max-width: 900px; line-height: 1.5;
+    padding: 20px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .fj-wager-msg {
+    font-family: 'Lato', sans-serif;
+    font-size: clamp(0.85rem, 2vw, 1.4rem);
+    color: rgba(255,255,255,0.55); font-style: italic;
+    text-align: center;
+  }
+  .fj-results-list {
+    display: flex; flex-direction: column;
+    gap: 14px; width: 100%; max-width: 700px;
+    max-height: 60vh; overflow-y: auto;
+  }
+  .fj-result-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,0.07); border-radius: 10px;
+    padding: 14px 22px;
+    border: 2px solid rgba(255,255,255,0.1);
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(0.9rem, 2vw, 1.4rem);
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .fj-result-item.correct { border-color: rgba(74,222,128,0.6); background: rgba(74,222,128,0.1); }
+  .fj-result-item.wrong { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.08); }
+  .fj-result-score { font-size: 1.1em; color: var(--bright-gold); }
+  .fj-winner-banner {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.5rem, 5vw, 4rem);
+    color: var(--bright-gold); text-align: center;
+    text-shadow: 0 0 40px rgba(255,215,0,0.8);
+    letter-spacing: 0.1em; margin-top: 10px;
+  }
+
   /* Intro/title screen */
     #intro-screen {
       position: fixed; inset: 0;
@@ -196,6 +258,25 @@
     <!-- Daily Double overlay -->
     <div id="dd-overlay" class="daily-double-banner hidden">
       <div class="dd-text">DAILY DOUBLE!</div>
+    </div>
+
+    <!-- DD player/wager reveal -->
+    <div id="dd-player-banner" class="hidden" style="
+      position:fixed; bottom:0; left:0; right:0; z-index:350;
+      background:rgba(255,140,0,0.18); border-top:2px solid rgba(255,165,0,0.5);
+      padding:14px 30px; text-align:center;
+      font-family:'Oswald',sans-serif; font-size:clamp(1rem,2.5vw,1.8rem);
+      color:#fbbf24; letter-spacing:0.08em;">
+    </div>
+
+    <!-- Final Jeopardy overlay -->
+    <div id="fj-overlay" class="fj-overlay hidden">
+      <div class="fj-title">FINAL JEOPARDY!</div>
+      <div class="fj-category" id="fj-board-category"></div>
+      <div class="fj-wager-msg" id="fj-board-msg">Players — place your wagers now!</div>
+      <div class="fj-clue" id="fj-board-clue" style="display:none;"></div>
+      <div class="fj-results-list" id="fj-results-list" style="display:none;"></div>
+      <div class="fj-winner-banner" id="fj-winner-banner" style="display:none;"></div>
     </div>
 
   </div>
@@ -479,6 +560,55 @@
       if (gameData) gameData.board = board;
       renderBoard(board);
       hideQuestionOverlay();
+      document.getElementById('fj-overlay').classList.add('hidden');
+    });
+
+    socket.on('dd-revealed', ({ playerName, wager }) => {
+      const banner = document.getElementById('dd-player-banner');
+      banner.textContent = `${playerName} — Wager: $${wager}`;
+      banner.classList.remove('hidden');
+    });
+
+    socket.on('final-jeopardy-started', ({ category }) => {
+      hideQuestionOverlay();
+      const ov = document.getElementById('fj-overlay');
+      document.getElementById('fj-board-category').textContent = category;
+      document.getElementById('fj-board-msg').textContent = 'Players — place your wagers now!';
+      document.getElementById('fj-board-clue').style.display = 'none';
+      document.getElementById('fj-results-list').style.display = 'none';
+      document.getElementById('fj-winner-banner').style.display = 'none';
+      ov.classList.remove('hidden');
+    });
+
+    socket.on('fj-clue-revealed', ({ clue }) => {
+      document.getElementById('fj-board-msg').textContent = 'Write your answer!';
+      document.getElementById('fj-board-clue').textContent = clue;
+      document.getElementById('fj-board-clue').style.display = '';
+    });
+
+    let fjResultsMap = {};
+    socket.on('fj-answer-result', ({ playerId, playerName, correct, wager, newScore }) => {
+      fjResultsMap[playerId] = { playerName, correct, wager, newScore };
+      const list = document.getElementById('fj-results-list');
+      list.style.display = '';
+      list.innerHTML = Object.values(fjResultsMap).map(r => `
+        <div class="fj-result-item ${r.correct ? 'correct' : 'wrong'}">
+          <span>${escHtml(r.playerName)}</span>
+          <span>${r.correct ? '+' : '-'}$${r.wager}</span>
+          <span class="fj-result-score">$${r.newScore}</span>
+        </div>
+      `).join('');
+    });
+
+    socket.on('game-ended', ({ players }) => {
+      fjResultsMap = {};
+      const winner = players[0];
+      if (winner) {
+        const banner = document.getElementById('fj-winner-banner');
+        banner.textContent = `Winner: ${winner.name} — $${winner.score}`;
+        banner.style.display = '';
+      }
+      document.getElementById('fj-board-msg').style.display = 'none';
     });
   </script>
 </body>

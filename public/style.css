@@ -251,7 +251,7 @@ label {
 /* Setup grid */
 .setup-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   margin-bottom: 24px;
 }
@@ -314,7 +314,7 @@ label {
 /* Mini board in host control */
 .mini-board {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
 }
 
@@ -1056,6 +1056,212 @@ label {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+
+/* Daily Double wager panel */
+.dd-wager-panel {
+  background: rgba(255,215,0,0.08);
+  border: 2px solid rgba(255,215,0,0.4);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.dd-wager-panel .dd-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1rem;
+  color: var(--bright-gold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.dd-wager-panel .dd-fields {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.dd-wager-panel select {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(212,175,55,0.4);
+  border-radius: 6px;
+  color: white;
+  padding: 8px 10px;
+  font-family: 'Lato', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Final Jeopardy */
+.fj-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #04057a 0%, #000 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 40px;
+  text-align: center;
+}
+
+.fj-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.fj-category {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(2rem, 6vw, 5rem);
+  color: var(--bright-gold);
+  font-weight: 700;
+  text-shadow: 0 0 40px rgba(255,215,0,0.6);
+  letter-spacing: 0.05em;
+  margin-bottom: 20px;
+  animation: titlePop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+.fj-clue {
+  font-size: clamp(1.4rem, 3.5vw, 3rem);
+  color: var(--white);
+  line-height: 1.4;
+  max-width: 900px;
+  margin-top: 20px;
+}
+
+.fj-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.fj-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.2rem;
+  gap: 12px;
+}
+
+.fj-result-item.correct {
+  background: rgba(39,174,96,0.25);
+  border: 2px solid rgba(39,174,96,0.6);
+}
+
+.fj-result-item.wrong {
+  background: rgba(192,57,43,0.25);
+  border: 2px solid rgba(192,57,43,0.5);
+}
+
+/* Player Final Jeopardy wager screen */
+.fj-wager-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+  text-align: center;
+}
+
+.fj-wager-screen .fj-cat-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.85rem;
+  color: var(--gold);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.fj-wager-screen .fj-cat-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 2rem;
+  color: var(--bright-gold);
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(255,215,0,0.4);
+}
+
+.fj-wager-screen .wager-hint {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.fj-clue-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px;
+  text-align: center;
+}
+
+.fj-clue-screen .fj-clue-text {
+  font-size: 1.1rem;
+  color: var(--white);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.fj-locked-badge {
+  background: rgba(39,174,96,0.2);
+  border: 1px solid rgba(39,174,96,0.5);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  color: #4ade80;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Host FJ panel */
+.fj-host-panel {
+  background: rgba(255,215,0,0.05);
+  border: 2px solid rgba(255,215,0,0.3);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.fj-judge-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.fj-judge-item.judged-correct {
+  background: rgba(39,174,96,0.15);
+  border-color: rgba(39,174,96,0.4);
+}
+
+.fj-judge-item.judged-wrong {
+  background: rgba(192,57,43,0.15);
+  border-color: rgba(192,57,43,0.4);
+}
+
+.fj-judge-item .fj-player-info { flex: 1; }
+.fj-judge-item .fj-player-name { font-weight: 700; font-size: 0.95rem; }
+.fj-judge-item .fj-player-wager { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
 
 /* Saved boards list */
 .saved-board-item {

@@ -147,6 +147,34 @@
         <span id="others-buzz-name"></span> is answering...
       </div>
 
+      <!-- Daily Double message (shown when DD is active) -->
+      <div id="dd-area" class="hidden" style="text-align:center; padding:14px 0;">
+        <div style="font-family:'Oswald',sans-serif; font-size:1.6rem; color:#fbbf24; letter-spacing:0.1em;">DAILY DOUBLE!</div>
+        <div style="color:rgba(255,255,255,0.5); font-size:0.85rem; margin-top:6px;">Host is setting the wager...</div>
+      </div>
+
+      <!-- Final Jeopardy wager screen -->
+      <div id="fj-area" class="hidden" style="padding:10px 0;">
+        <div style="font-family:'Oswald',sans-serif; font-size:1.3rem; color:#93c5fd; text-align:center; margin-bottom:8px;">FINAL JEOPARDY</div>
+        <div style="font-size:0.9rem; color:rgba(255,255,255,0.6); text-align:center; margin-bottom:6px;" id="fj-cat-display"></div>
+        <div id="fj-wager-form">
+          <label style="font-size:0.78rem; color:rgba(255,255,255,0.5); display:block; margin-bottom:4px;">Your Wager (max: <span id="fj-max-wager">0</span>)</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="number" id="fj-wager-input" min="0" value="0"
+              style="flex:1; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.2); color:white; border-radius:6px; padding:8px 10px; font-size:1rem;">
+            <button class="btn btn-gold" onclick="submitWager()">Lock In</button>
+          </div>
+        </div>
+        <div id="fj-wager-locked" class="hidden" style="text-align:center; padding:10px 0;">
+          <div style="font-family:'Oswald',sans-serif; font-size:1.1rem; color:#4ade80;">Wager locked!</div>
+          <div style="font-size:0.85rem; color:rgba(255,255,255,0.5); margin-top:4px;">Waiting for clue...</div>
+        </div>
+        <div id="fj-clue-display" class="hidden" style="margin-top:10px; padding:12px; background:rgba(255,255,255,0.06); border-radius:8px; border:1px solid rgba(255,255,255,0.12);">
+          <div style="font-size:0.75rem; color:rgba(255,255,255,0.45); margin-bottom:6px;">FINAL CLUE</div>
+          <div style="font-size:0.95rem; color:white; line-height:1.5;" id="fj-clue-text"></div>
+        </div>
+      </div>
+
       <!-- Question closed feedback -->
       <div id="waiting-area" style="text-align:center; color:rgba(255,255,255,0.3); font-size:0.9rem; font-style:italic; padding:10px 0;">
         Waiting for next question...
@@ -174,6 +202,37 @@
     let hasBuzzed = false;
     let questionActive = false;
     let iAmFirst = false;
+    let playerTimerInterval = null;
+    let currentBuzzTimeLimit = 30;
+    let currentAnswerTimeLimit = 20;
+
+    function startPlayerTimer(seconds, mode) {
+      clearPlayerTimer();
+      let timeLeft = seconds;
+      const wrap = document.getElementById('player-timer-wrap');
+      const bar = document.getElementById('player-timer-bar');
+      const label = document.getElementById('player-timer-label');
+      wrap.classList.remove('hidden');
+      bar.style.width = '100%';
+      bar.style.background = mode === 'buzz' ? '#4ade80' : '#fbbf24';
+      label.textContent = `${timeLeft}s to ${mode === 'buzz' ? 'buzz in' : 'answer'}`;
+
+      playerTimerInterval = setInterval(() => {
+        timeLeft--;
+        const pct = Math.max(0, timeLeft / seconds) * 100;
+        bar.style.width = pct + '%';
+        label.textContent = `${Math.max(0, timeLeft)}s to ${mode === 'buzz' ? 'buzz in' : 'answer'}`;
+        if (pct <= 25) bar.style.background = '#ef4444';
+        else if (pct <= 50) bar.style.background = '#f97316';
+        if (timeLeft <= 0) clearPlayerTimer();
+      }, 1000);
+    }
+
+    function clearPlayerTimer() {
+      clearInterval(playerTimerInterval);
+      playerTimerInterval = null;
+      document.getElementById('player-timer-wrap').classList.add('hidden');
+    }
 
     // Check URL params
     const urlParams = new URLSearchParams(window.location.search);
@@ -264,6 +323,7 @@
         status.textContent = 'Tap to buzz in!';
         status.className = 'buzz-status active';
       } else {
+        clearPlayerTimer();
         buzzArea.classList.add('hidden');
         waitArea.classList.remove('hidden');
         othersArea.classList.add('hidden');
@@ -334,14 +394,25 @@
     });
 
     socket.on('question-active', (q) => {
-      setQuestionActive(true);
+      currentBuzzTimeLimit = q.buzzTimeLimit || 30;
+      currentAnswerTimeLimit = q.answerTimeLimit || 20;
+
+      if (q.dailyDouble) {
+        // Hide buzz area, show DD message
+        document.getElementById('buzz-area').classList.add('hidden');
+        document.getElementById('waiting-area').classList.add('hidden');
+        document.getElementById('dd-area').classList.remove('hidden');
+        questionActive = false;
+        canBuzz = false;
+      } else {
+        document.getElementById('dd-area').classList.add('hidden');
+        setQuestionActive(true);
+        startPlayerTimer(currentBuzzTimeLimit, 'buzz');
+      }
     });
 
     socket.on('buzz-update', ({ buzzOrder, firstBuzzerId, firstBuzzerName }) => {
-      // Update leaderboard buzz highlights
-      document.querySelectorAll('.leaderboard-item').forEach(el => {
-        el.classList.remove('buzzing-now');
-      });
+      document.querySelectorAll('.leaderboard-item').forEach(el => el.classList.remove('buzzing-now'));
 
       if (firstBuzzerId) {
         const el = document.getElementById(`lb-${firstBuzzerId}`);
@@ -350,10 +421,12 @@
 
       const iAmFirst = firstBuzzerId === socket.id;
       const iAmInOrder = buzzOrder.some(b => b.id === socket.id);
-
       const btn = document.getElementById('buzz-btn');
       const status = document.getElementById('buzz-status');
       const othersArea = document.getElementById('others-buzzing');
+
+      // Switch timer to answer countdown for whoever is first
+      startPlayerTimer(currentAnswerTimeLimit, 'answer');
 
       if (iAmFirst) {
         btn.classList.remove('buzzed');
@@ -364,7 +437,6 @@
         status.className = 'buzz-status buzzed-first';
         othersArea.classList.add('hidden');
       } else if (!iAmInOrder && firstBuzzerId) {
-        // Someone else buzzed first, show "others buzzing" if I haven't buzzed
         if (!hasBuzzed) {
           document.getElementById('others-buzz-name').textContent = firstBuzzerName;
           othersArea.classList.remove('hidden');
@@ -373,6 +445,7 @@
     });
 
     socket.on('answer-correct', ({ playerName, value, players }) => {
+      clearPlayerTimer();
       showFeedback('correct', playerName, value);
       updateLeaderboard(players);
       updateMyScore(players);
@@ -384,7 +457,6 @@
       updateLeaderboard(players);
       updateMyScore(players);
 
-      // Re-enable buzz if I haven't buzzed and question is still active
       const btn = document.getElementById('buzz-btn');
       const status = document.getElementById('buzz-status');
       if (!hasBuzzed && questionActive) {
@@ -395,12 +467,16 @@
         status.textContent = 'Tap to buzz in!';
         status.className = 'buzz-status active';
         document.getElementById('others-buzzing').classList.add('hidden');
+        // Restart buzz timer for remaining players
+        startPlayerTimer(currentBuzzTimeLimit, 'buzz');
       }
       document.querySelectorAll('.leaderboard-item').forEach(el => el.classList.remove('buzzing-now'));
     });
 
     socket.on('question-closed', () => {
+      clearPlayerTimer();
       setQuestionActive(false);
+      document.getElementById('dd-area').classList.add('hidden');
       document.querySelectorAll('.leaderboard-item').forEach(el => el.classList.remove('buzzing-now'));
     });
 
@@ -409,6 +485,69 @@
       updateMyScore(players);
       setQuestionActive(false);
       document.getElementById('waiting-area').textContent = 'New game started! Waiting for first question...';
+    });
+
+    socket.on('dd-revealed', () => {
+      // DD clue is being revealed — hide DD area, show waiting
+      document.getElementById('dd-area').classList.add('hidden');
+      document.getElementById('waiting-area').classList.remove('hidden');
+      document.getElementById('waiting-area').textContent = 'Daily Double — watch the board!';
+    });
+
+    socket.on('final-jeopardy-started', ({ category, players }) => {
+      // Hide all question UI
+      setQuestionActive(false);
+      clearPlayerTimer();
+      document.getElementById('dd-area').classList.add('hidden');
+      document.getElementById('waiting-area').classList.add('hidden');
+
+      // Show FJ area
+      const me = players.find(p => p.id === socket.id);
+      const myScore = me ? me.score : 0;
+      const maxWager = Math.max(0, myScore);
+
+      document.getElementById('fj-cat-display').textContent = category;
+      document.getElementById('fj-max-wager').textContent = maxWager;
+      document.getElementById('fj-wager-input').max = maxWager;
+      document.getElementById('fj-wager-input').value = 0;
+      document.getElementById('fj-wager-form').classList.remove('hidden');
+      document.getElementById('fj-wager-locked').classList.add('hidden');
+      document.getElementById('fj-clue-display').classList.add('hidden');
+      document.getElementById('fj-area').classList.remove('hidden');
+
+      updateLeaderboard(players);
+      updateMyScore(players);
+    });
+
+    function submitWager() {
+      const amount = parseInt(document.getElementById('fj-wager-input').value) || 0;
+      socket.emit('submit-wager', { amount });
+    }
+
+    socket.on('fj-wager-confirmed', ({ wager }) => {
+      document.getElementById('fj-wager-form').classList.add('hidden');
+      document.getElementById('fj-wager-locked').classList.remove('hidden');
+      document.getElementById('fj-wager-locked').querySelector('div').textContent = `Wager locked: $${wager}`;
+    });
+
+    socket.on('fj-clue-revealed', ({ clue }) => {
+      document.getElementById('fj-wager-form').classList.add('hidden');
+      document.getElementById('fj-wager-locked').classList.add('hidden');
+      document.getElementById('fj-clue-text').textContent = clue;
+      document.getElementById('fj-clue-display').classList.remove('hidden');
+    });
+
+    socket.on('fj-answer-result', ({ playerId, correct, wager, newScore, players }) => {
+      updateLeaderboard(players);
+      updateMyScore(players);
+    });
+
+    socket.on('game-ended', ({ players }) => {
+      updateLeaderboard(players);
+      updateMyScore(players);
+      document.getElementById('fj-area').classList.add('hidden');
+      document.getElementById('waiting-area').classList.remove('hidden');
+      document.getElementById('waiting-area').textContent = 'Game over! Thanks for playing!';
     });
 
     socket.on('disconnect', () => {

@@ -31,6 +31,7 @@ function serializeGame(game) {
     board: game.board,
     players: getPlayers(game),
     activeQuestion: game.activeQuestion,
+    finalJeopardy: game.finalJeopardy ? { category: game.finalJeopardy.category, revealed: game.finalJeopardy.revealed } : null,
     buzzOrder: game.buzzOrder.map(id => ({
       id,
       name: game.players[id]?.name || 'Unknown'
@@ -59,7 +60,7 @@ function getHostGame(socket) {
 }
 
 io.on('connection', (socket) => {
-  // Host creates a new game with board data
+
   socket.on('create-game', (boardData, callback) => {
     let code;
     let attempts = 0;
@@ -72,36 +73,29 @@ io.on('connection', (socket) => {
       host: socket.id,
       activeQuestion: null,
       buzzOrder: [],
+      finalJeopardy: null,
       state: 'lobby'
     };
 
     socket.join(code);
     socket.data.gameCode = code;
     socket.data.isHost = true;
-
     callback({ success: true, code });
   });
 
-  // Board display connects to a room
   socket.on('join-board', (code, callback) => {
     const game = games[code];
     if (!game) return callback({ error: 'Game not found' });
-
     socket.join(code);
     socket.data.gameCode = code;
     socket.data.isBoard = true;
-
     callback({ success: true, game: serializeGame(game) });
   });
 
-  // Player joins a game
   socket.on('join-game', ({ code, name }, callback) => {
     const game = games[code];
     if (!game) return callback({ error: 'Game not found' });
     if (!name?.trim()) return callback({ error: 'Name required' });
-    if (game.state === 'lobby' || game.state === 'playing' || game.state === 'question-active') {
-      // allow joining anytime
-    }
 
     let playerName = name.trim().substring(0, 20);
     const existingNames = Object.values(game.players).map(p => p.name.toLowerCase());
@@ -109,7 +103,7 @@ io.on('connection', (socket) => {
       playerName = playerName + Math.floor(Math.random() * 100);
     }
 
-    game.players[socket.id] = { id: socket.id, name: playerName, score: 0, canBuzz: false };
+    game.players[socket.id] = { id: socket.id, name: playerName, score: 0, canBuzz: false, fjWager: null };
     socket.join(code);
     socket.data.gameCode = code;
     socket.data.playerName = playerName;
@@ -118,7 +112,6 @@ io.on('connection', (socket) => {
     callback({ success: true, name: playerName, game: serializeGame(game) });
   });
 
-  // Host starts the game
   socket.on('start-game', () => {
     const game = getHostGame(socket);
     if (!game) return;
@@ -126,7 +119,6 @@ io.on('connection', (socket) => {
     io.to(game.code).emit('game-started', { board: game.board });
   });
 
-  // Host selects a question cell
   socket.on('select-question', ({ catIndex, qIndex, buzzTimeLimit, answerTimeLimit }) => {
     const game = getHostGame(socket);
     if (!game || game.state !== 'playing') return;
@@ -145,15 +137,43 @@ io.on('connection', (socket) => {
       dailyDouble: q.dailyDouble || false,
       buzzTimeLimit: Math.max(5, Math.min(120, parseInt(buzzTimeLimit) || 30)),
       answerTimeLimit: Math.max(5, Math.min(60, parseInt(answerTimeLimit) || 20)),
+      ddPlayerId: null,
+      ddWager: null,
     };
     game.buzzOrder = [];
     game.state = 'question-active';
-    Object.values(game.players).forEach(p => p.canBuzz = true);
+
+    // For Daily Double, only the host reveals — no buzzing
+    if (!q.dailyDouble) {
+      Object.values(game.players).forEach(p => p.canBuzz = true);
+    }
 
     io.to(game.code).emit('question-active', game.activeQuestion);
   });
 
-  // Player buzzes in
+  // Host sets the DD wager and reveals the clue
+  socket.on('dd-reveal', ({ playerId, wager }) => {
+    const game = getHostGame(socket);
+    if (!game || !game.activeQuestion?.dailyDouble) return;
+
+    const player = game.players[playerId];
+    if (!player) return;
+
+    const maxWager = Math.max(1000, player.score > 0 ? player.score : 0);
+    const validWager = Math.max(5, Math.min(parseInt(wager) || 5, maxWager));
+
+    game.activeQuestion.ddPlayerId = playerId;
+    game.activeQuestion.ddWager = validWager;
+
+    io.to(game.code).emit('dd-revealed', {
+      playerId,
+      playerName: player.name,
+      wager: validWager,
+      clue: game.activeQuestion.clue,
+      answer: game.activeQuestion.answer,
+    });
+  });
+
   socket.on('buzz-in', () => {
     const code = socket.data.gameCode;
     const game = games[code];
@@ -172,11 +192,31 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Host marks answer correct or incorrect
   socket.on('answer-result', ({ correct }) => {
     const game = getHostGame(socket);
-    if (!game || !game.activeQuestion || game.buzzOrder.length === 0) return;
+    if (!game || !game.activeQuestion) return;
 
+    // Daily Double scoring
+    if (game.activeQuestion.dailyDouble) {
+      const playerId = game.activeQuestion.ddPlayerId;
+      const wager = game.activeQuestion.ddWager;
+      if (!playerId || wager == null) return;
+
+      const player = game.players[playerId];
+      if (!player) return;
+
+      if (correct) player.score += wager;
+      else player.score -= wager;
+
+      const snapshot = { playerId, playerName: player.name, value: wager, players: getPlayers(game) };
+      closeQuestion(game, true);
+      io.to(game.code).emit(correct ? 'answer-correct' : 'answer-wrong', snapshot);
+      io.to(game.code).emit('question-closed');
+      return;
+    }
+
+    // Normal buzz scoring
+    if (game.buzzOrder.length === 0) return;
     const firstId = game.buzzOrder[0];
     const player = game.players[firstId];
     if (!player) return;
@@ -185,12 +225,7 @@ io.on('connection', (socket) => {
 
     if (correct) {
       player.score += value;
-      const snapshot = {
-        playerId: firstId,
-        playerName: player.name,
-        value,
-        players: getPlayers(game)
-      };
+      const snapshot = { playerId: firstId, playerName: player.name, value, players: getPlayers(game) };
       closeQuestion(game, true);
       io.to(game.code).emit('answer-correct', snapshot);
       io.to(game.code).emit('question-closed');
@@ -206,7 +241,6 @@ io.on('connection', (socket) => {
         players: getPlayers(game)
       });
 
-      // If someone else already buzzed, immediately surface them as next
       if (game.buzzOrder.length > 0) {
         io.to(game.code).emit('buzz-update', {
           buzzOrder: game.buzzOrder.map(id => ({ id, name: game.players[id]?.name || 'Unknown' })),
@@ -217,14 +251,12 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Host reveals the answer text
   socket.on('reveal-answer', () => {
     const game = getHostGame(socket);
     if (!game || !game.activeQuestion) return;
     io.to(game.code).emit('answer-revealed', { answer: game.activeQuestion.answer });
   });
 
-  // Host dismisses question without scoring
   socket.on('dismiss-question', () => {
     const game = getHostGame(socket);
     if (!game) return;
@@ -232,7 +264,6 @@ io.on('connection', (socket) => {
     io.to(game.code).emit('question-closed');
   });
 
-  // Host adjusts a player's score manually
   socket.on('adjust-score', ({ playerId, delta }) => {
     const game = getHostGame(socket);
     if (!game) return;
@@ -242,25 +273,101 @@ io.on('connection', (socket) => {
     io.to(game.code).emit('players-update', getPlayers(game));
   });
 
-  // Reset entire board for a new game (keep players)
+  // ==================== FINAL JEOPARDY ====================
+
+  socket.on('start-final-jeopardy', ({ category, clue, answer }) => {
+    const game = getHostGame(socket);
+    if (!game) return;
+
+    game.state = 'final-jeopardy';
+    game.finalJeopardy = { category, clue, answer, wagers: {}, revealed: false };
+    game.activeQuestion = null;
+    game.buzzOrder = [];
+    Object.values(game.players).forEach(p => { p.canBuzz = false; p.fjWager = null; });
+
+    io.to(game.code).emit('final-jeopardy-started', {
+      category,
+      players: getPlayers(game)
+    });
+  });
+
+  socket.on('submit-wager', ({ amount }) => {
+    const code = socket.data.gameCode;
+    const game = games[code];
+    if (!game || game.state !== 'final-jeopardy') return;
+
+    const player = game.players[socket.id];
+    if (!player) return;
+
+    const maxWager = Math.max(0, player.score);
+    const wager = Math.max(0, Math.min(parseInt(amount) || 0, maxWager));
+    player.fjWager = wager;
+    game.finalJeopardy.wagers[socket.id] = wager;
+
+    io.to(game.code).emit('fj-wager-received', {
+      playerId: socket.id,
+      playerName: player.name,
+      wageredCount: Object.keys(game.finalJeopardy.wagers).length,
+      totalPlayers: Object.keys(game.players).length
+    });
+
+    // Confirm back to the player
+    socket.emit('fj-wager-confirmed', { wager });
+  });
+
+  socket.on('reveal-final-clue', () => {
+    const game = getHostGame(socket);
+    if (!game || !game.finalJeopardy) return;
+    game.finalJeopardy.revealed = true;
+    io.to(game.code).emit('fj-clue-revealed', { clue: game.finalJeopardy.clue });
+  });
+
+  socket.on('final-answer-result', ({ playerId, correct }) => {
+    const game = getHostGame(socket);
+    if (!game || !game.finalJeopardy) return;
+
+    const player = game.players[playerId];
+    if (!player) return;
+
+    const wager = player.fjWager ?? 0;
+    if (correct) player.score += wager;
+    else player.score -= wager;
+
+    io.to(game.code).emit('fj-answer-result', {
+      playerId,
+      playerName: player.name,
+      correct,
+      wager,
+      newScore: player.score,
+      players: getPlayers(game)
+    });
+  });
+
+  socket.on('end-game', () => {
+    const game = getHostGame(socket);
+    if (!game) return;
+    game.state = 'ended';
+    io.to(game.code).emit('game-ended', { players: getPlayers(game) });
+  });
+
+  // ==================== RESET / DISCONNECT ====================
+
   socket.on('reset-game', (boardData) => {
     const game = getHostGame(socket);
     if (!game) return;
     game.board = boardData || game.board;
     game.activeQuestion = null;
     game.buzzOrder = [];
+    game.finalJeopardy = null;
     game.state = 'playing';
-    // Reset board answered flags
     game.board.categories.forEach(cat => cat.questions.forEach(q => q.answered = false));
-    // Reset scores
-    Object.values(game.players).forEach(p => { p.score = 0; p.canBuzz = false; });
+    Object.values(game.players).forEach(p => { p.score = 0; p.canBuzz = false; p.fjWager = null; });
     io.to(game.code).emit('game-reset', { board: game.board, players: getPlayers(game) });
   });
 
   socket.on('disconnect', () => {
     const code = socket.data.gameCode;
     if (!code || !games[code]) return;
-
     const game = games[code];
     if (game.players[socket.id]) {
       const playerName = game.players[socket.id].name;

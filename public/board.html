@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy! Board</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body { overflow: hidden; }
+
+    .ov-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .board-timer {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+  }
+
+  .timer-ring {
+    width: 100px;
+    height: 100px;
+    transform: rotate(-90deg);
+  }
+
+  .timer-ring-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.15);
+    stroke-width: 6;
+  }
+
+  .timer-ring-fill {
+    fill: none;
+    stroke: #4ade80;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 213.6;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
+  }
+
+  .timer-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .timer-num {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+  }
+
+  .timer-label {
+    font-size: clamp(0.45rem, 1vw, 0.65rem);
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+  }
+
+  .board-buzz-order {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 24px;
+  }
+
+  .board-buzz-item {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+    color: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .board-buzz-item.first {
+    background: rgba(255,215,0,0.2);
+    border-color: var(--bright-gold);
+    color: var(--bright-gold);
+  }
+
+  .board-buzz-rank {
+    font-size: 0.75em;
+    opacity: 0.6;
+  }
+
+  /* Intro/title screen */
+    #intro-screen {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, #04057a 0%, #000 70%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 30px; z-index: 500;
+      transition: opacity 0.5s ease;
+    }
+
+    #intro-screen.fade-out {
+      opacity: 0; pointer-events: none;
+    }
+
+    .intro-title {
+      font-family: 'Oswald', sans-serif;
+      font-size: clamp(4rem, 12vw, 10rem);
+      font-weight: 700;
+      color: var(--bright-gold);
+      letter-spacing: 0.15em;
+      text-shadow: 0 0 60px rgba(255,215,0,0.7), 4px 4px 0 rgba(0,0,0,0.5);
+      animation: titlePop 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    @keyframes titlePop {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .board-page { height: 100vh; display: flex; flex-direction: column; background: #000; }
+  </style>
+</head>
+<body>
+
+  <!-- Connect screen (shown until code is entered) -->
+  <div id="connect-screen" class="board-connect">
+    <div class="page-title" style="font-size:4rem;">JEOPARDY!</div>
+    <div class="subtitle" style="margin-bottom:20px;">Board Display</div>
+    <div class="connect-form">
+      <div>
+        <label style="text-align:left;">Room Code</label>
+        <input type="text" id="board-code-input" class="code-input" placeholder="XXXX" maxlength="4" autocomplete="off">
+      </div>
+      <button class="btn btn-gold btn-lg" onclick="connectBoard()">Connect Display</button>
+      <div id="connect-error" style="color:#ff6b6b; font-size:0.85rem; text-align:center; min-height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- Main board page (hidden until connected) -->
+  <div id="board-page" class="board-page hidden">
+
+    <!-- Intro / title splash (shown when game starts) -->
+    <div id="intro-screen" class="hidden">
+      <div class="intro-title">JEOPARDY!</div>
+    </div>
+
+    <!-- The grid board -->
+    <div id="jeopardy-board" class="jeopardy-board"></div>
+
+    <!-- Question overlay -->
+    <div id="question-overlay" class="question-overlay hidden">
+      <div class="ov-top-row">
+        <div>
+          <div class="q-category" id="ov-category"></div>
+          <div class="q-value" id="ov-value"></div>
+        </div>
+        <div id="ov-timer" class="board-timer hidden">
+          <svg class="timer-ring" viewBox="0 0 80 80">
+            <circle class="timer-ring-bg" cx="40" cy="40" r="34"/>
+            <circle class="timer-ring-fill" id="timer-ring-fill" cx="40" cy="40" r="34"/>
+          </svg>
+          <div class="timer-inner">
+            <div class="timer-num" id="ov-timer-num">30</div>
+            <div class="timer-label" id="ov-timer-label">BUZZ</div>
+          </div>
+        </div>
+      </div>
+      <div class="q-clue" id="ov-clue"></div>
+      <div class="q-answer-reveal hidden" id="ov-answer"></div>
+      <div id="ov-buzz-order" class="board-buzz-order hidden"></div>
+    </div>
+
+    <!-- Buzz banner (shown at bottom when someone buzzes) -->
+    <div id="buzz-banner" class="buzz-banner hidden">
+      <div>
+        <div class="buzz-label">BUZZED IN</div>
+        <div class="buzzer-name" id="banner-name"></div>
+      </div>
+    </div>
+
+    <!-- Daily Double overlay -->
+    <div id="dd-overlay" class="daily-double-banner hidden">
+      <div class="dd-text">DAILY DOUBLE!</div>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let gameData = null;
+    let connected = false;
+
+    // Auto-connect if code is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCode = urlParams.get('code');
+    if (urlCode) {
+      document.getElementById('board-code-input').value = urlCode.toUpperCase();
+      // Wait for socket connection
+      socket.on('connect', () => connectBoard());
+    }
+
+    document.getElementById('board-code-input').addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+
+    document.getElementById('board-code-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') connectBoard();
+    });
+
+    function connectBoard() {
+      const code = document.getElementById('board-code-input').value.trim().toUpperCase();
+      if (code.length < 4) {
+        document.getElementById('connect-error').textContent = 'Enter the 4-character room code.';
+        return;
+      }
+
+      socket.emit('join-board', code, (res) => {
+        if (res.error) {
+          document.getElementById('connect-error').textContent = res.error;
+          return;
+        }
+        connected = true;
+        gameData = res.game;
+        document.getElementById('connect-screen').classList.add('hidden');
+        document.getElementById('board-page').classList.remove('hidden');
+
+        if (gameData.state === 'playing' || gameData.state === 'question-active') {
+          renderBoard(gameData.board);
+          if (gameData.state === 'question-active' && gameData.activeQuestion) {
+            showQuestionOverlay(gameData.activeQuestion);
+          }
+        } else {
+          // Show a waiting screen with the board ready
+          renderBoard(gameData.board);
+          showIntro();
+        }
+      });
+    }
+
+    function showIntro() {
+      const intro = document.getElementById('intro-screen');
+      intro.classList.remove('hidden');
+      setTimeout(() => {
+        intro.classList.add('fade-out');
+        setTimeout(() => intro.classList.add('hidden'), 500);
+      }, 2000);
+    }
+
+    // ==================== RENDER BOARD ====================
+
+    function renderBoard(board) {
+      const el = document.getElementById('jeopardy-board');
+      el.innerHTML = '';
+
+      // Set grid columns based on number of categories
+      const numCats = board.categories.length;
+      el.style.gridTemplateColumns = `repeat(${numCats}, 1fr)`;
+
+      // Category headers
+      board.categories.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = 'board-category';
+        div.textContent = cat.name;
+        el.appendChild(div);
+      });
+
+      // Question cells
+      const values = board.categories[0]?.questions.map(q => q.value) || [200,400,600,800,1000];
+      values.forEach((_, qi) => {
+        board.categories.forEach((cat, ci) => {
+          const q = cat.questions[qi];
+          const cell = document.createElement('div');
+          cell.className = 'board-cell' + (q.answered ? ' answered' : '');
+          cell.id = `cell-${ci}-${qi}`;
+          if (!q.answered) {
+            cell.innerHTML = `<div class="dollar">$${q.value}</div>`;
+          }
+          el.appendChild(cell);
+        });
+      });
+    }
+
+    function markCellAnswered(catIndex, qIndex) {
+      const cell = document.getElementById(`cell-${catIndex}-${qIndex}`);
+      if (cell) {
+        cell.classList.add('answered');
+        cell.innerHTML = '';
+      }
+    }
+
+    // ==================== QUESTION OVERLAY ====================
+
+    // ==================== TIMER ====================
+
+    let boardTimerInterval = null;
+    let boardTimerTotal = 30;
+    const RING_CIRCUMFERENCE = 2 * Math.PI * 34; // r=34
+
+    function startBoardTimer(seconds, mode) {
+      clearBoardTimer();
+      boardTimerTotal = seconds;
+      let timeLeft = seconds;
+
+      const timerEl = document.getElementById('ov-timer');
+      const numEl = document.getElementById('ov-timer-num');
+      const labelEl = document.getElementById('ov-timer-label');
+      const ringEl = document.getElementById('timer-ring-fill');
+
+      timerEl.classList.remove('hidden');
+      numEl.textContent = timeLeft;
+      labelEl.textContent = mode === 'buzz' ? 'BUZZ' : 'ANSWER';
+      ringEl.style.stroke = mode === 'buzz' ? '#4ade80' : '#fbbf24';
+      ringEl.style.strokeDasharray = RING_CIRCUMFERENCE;
+      ringEl.style.strokeDashoffset = 0;
+
+      boardTimerInterval = setInterval(() => {
+        timeLeft--;
+        numEl.textContent = Math.max(0, timeLeft);
+        const pct = timeLeft / seconds;
+        ringEl.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
+
+        if (pct <= 0.25) ringEl.style.stroke = '#ef4444';
+        else if (pct <= 0.5) ringEl.style.stroke = '#f97316';
+        else if (mode === 'answer') ringEl.style.stroke = '#fbbf24';
+
+        if (timeLeft <= 0) clearBoardTimer();
+      }, 1000);
+    }
+
+    function clearBoardTimer() {
+      clearInterval(boardTimerInterval);
+      boardTimerInterval = null;
+    }
+
+    // ==================== BUZZ ORDER ====================
+
+    function showBuzzOrder(buzzOrder) {
+      const el = document.getElementById('ov-buzz-order');
+      if (!buzzOrder || !buzzOrder.length) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      el.innerHTML = buzzOrder.map((b, i) => `
+        <div class="board-buzz-item ${i === 0 ? 'first' : ''}">
+          <span class="board-buzz-rank">${i + 1}.</span>
+          ${escHtml(b.name)}
+        </div>
+      `).join('');
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ==================== QUESTION OVERLAY ====================
+
+    function showQuestionOverlay(q) {
+      const overlay = document.getElementById('question-overlay');
+
+      document.getElementById('ov-category').textContent = q.category;
+      document.getElementById('ov-value').textContent = `$${q.value}`;
+      document.getElementById('ov-clue').textContent = q.clue;
+      document.getElementById('ov-answer').textContent = '';
+      document.getElementById('ov-answer').classList.add('hidden');
+      document.getElementById('ov-buzz-order').classList.add('hidden');
+      document.getElementById('ov-buzz-order').innerHTML = '';
+      document.getElementById('ov-timer').classList.add('hidden');
+
+      const cell = document.getElementById(`cell-${q.catIndex}-${q.qIndex}`);
+      if (cell) cell.classList.add('active-flash');
+
+      const show = () => {
+        overlay.classList.remove('hidden');
+        if (q.buzzTimeLimit) startBoardTimer(q.buzzTimeLimit, 'buzz');
+      };
+
+      if (q.dailyDouble) {
+        showDailyDouble(show);
+      } else {
+        setTimeout(show, 300);
+      }
+    }
+
+    function hideQuestionOverlay() {
+      clearBoardTimer();
+      document.getElementById('question-overlay').classList.add('hidden');
+      document.getElementById('buzz-banner').classList.add('hidden');
+      document.getElementById('ov-answer').classList.add('hidden');
+      document.getElementById('ov-buzz-order').classList.add('hidden');
+      document.getElementById('ov-timer').classList.add('hidden');
+    }
+
+    // ==================== DAILY DOUBLE ====================
+
+    function showDailyDouble(callback) {
+      const dd = document.getElementById('dd-overlay');
+      dd.classList.remove('hidden');
+      setTimeout(() => {
+        dd.classList.add('hidden');
+        if (callback) callback();
+      }, 2500);
+    }
+
+    // ==================== BUZZ BANNER ====================
+
+    function showBuzzBanner(name) {
+      const banner = document.getElementById('buzz-banner');
+      document.getElementById('banner-name').textContent = name;
+      banner.classList.remove('hidden');
+    }
+
+    // ==================== SOCKET EVENTS ====================
+
+    socket.on('game-started', ({ board }) => {
+      gameData = { ...gameData, board };
+      renderBoard(board);
+      showIntro();
+    });
+
+    socket.on('question-active', (q) => {
+      if (!gameData) gameData = {};
+      gameData.activeQuestion = q;
+      document.getElementById('buzz-banner').classList.add('hidden');
+      showQuestionOverlay(q);
+    });
+
+    socket.on('buzz-update', ({ firstBuzzerName, buzzOrder }) => {
+      showBuzzBanner(firstBuzzerName);
+      showBuzzOrder(buzzOrder);
+      // Switch timer to answer countdown
+      const answerTime = gameData?.activeQuestion?.answerTimeLimit || 20;
+      startBoardTimer(answerTime, 'answer');
+    });
+
+    socket.on('answer-correct', () => {
+      document.getElementById('question-overlay').classList.add('correct-flash');
+      setTimeout(() => document.getElementById('question-overlay').classList.remove('correct-flash'), 500);
+    });
+
+    socket.on('answer-wrong', ({ buzzOrder }) => {
+      document.getElementById('question-overlay').classList.add('wrong-flash');
+      document.getElementById('buzz-banner').classList.add('hidden');
+      setTimeout(() => document.getElementById('question-overlay').classList.remove('wrong-flash'), 500);
+    });
+
+    socket.on('answer-revealed', ({ answer }) => {
+      const el = document.getElementById('ov-answer');
+      el.textContent = `Answer: ${answer}`;
+      el.classList.remove('hidden');
+    });
+
+    socket.on('question-closed', () => {
+      if (gameData?.activeQuestion) {
+        markCellAnswered(gameData.activeQuestion.catIndex, gameData.activeQuestion.qIndex);
+        gameData.activeQuestion = null;
+      }
+      hideQuestionOverlay();
+    });
+
+    socket.on('players-update', (players) => {
+      if (gameData) gameData.players = players;
+    });
+
+    socket.on('game-reset', ({ board }) => {
+      if (gameData) gameData.board = board;
+      renderBoard(board);
+      hideQuestionOverlay();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy!</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="landing-page">
+    <div class="landing-logo">
+      <div class="page-title">JEOPARDY!</div>
+      <div class="subtitle">The classic quiz game</div>
+    </div>
+
+    <div class="landing-options">
+      <div class="option-card">
+        <h2>Host a Game</h2>
+        <p style="color:rgba(255,255,255,0.6); font-size:0.9rem; margin-bottom:20px; line-height:1.6;">
+          Build a custom board, invite players, and control the game from your device.
+        </p>
+        <a href="/host.html" class="btn btn-gold btn-lg" style="width:100%; justify-content:center;">
+          Create Game
+        </a>
+      </div>
+
+      <div class="divider">or</div>
+
+      <div class="option-card">
+        <h2>Join a Game</h2>
+        <div class="join-form">
+          <div>
+            <label>Your Name</label>
+            <input type="text" id="playerName" placeholder="Enter your name" maxlength="20" autocomplete="off">
+          </div>
+          <div>
+            <label>Room Code</label>
+            <input type="text" id="roomCode" placeholder="XXXX" maxlength="4" class="code-input" autocomplete="off">
+          </div>
+          <button class="btn btn-gold btn-lg" onclick="joinGame()" style="width:100%; justify-content:center; margin-top:6px;">
+            Join Game
+          </button>
+          <div id="join-error" style="color:#ff6b6b; font-size:0.85rem; text-align:center; min-height:20px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('roomCode').addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+
+    document.getElementById('roomCode').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') joinGame();
+    });
+
+    document.getElementById('playerName').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('roomCode').focus();
+    });
+
+    function joinGame() {
+      const name = document.getElementById('playerName').value.trim();
+      const code = document.getElementById('roomCode').value.trim().toUpperCase();
+      const errEl = document.getElementById('join-error');
+
+      if (!name) { errEl.textContent = 'Please enter your name.'; return; }
+      if (code.length < 4) { errEl.textContent = 'Please enter the 4-character room code.'; return; }
+
+      errEl.textContent = '';
+      // Just redirect — player.html will handle the actual socket join
+      window.location.href = `/player.html?code=${code}&name=${encodeURIComponent(name)}`;
+    }
+  </script>
+</body>
+</html>

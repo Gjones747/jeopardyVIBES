@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy! - Host</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .section { display: none; }
+    .section.active { display: block; }
+    .setup-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+    .setup-title { font-family: 'Oswald', sans-serif; font-size: 1.4rem; color: var(--bright-gold); }
+    .q-count-badge {
+      font-size: 0.75rem; background: rgba(74,222,128,0.2); color: #4ade80;
+      padding: 3px 8px; border-radius: 20px; border: 1px solid rgba(74,222,128,0.4);
+    }
+    .section-heading {
+      font-family: 'Oswald', sans-serif; font-size: 0.8rem; color: var(--gold);
+      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .player-controls { display: flex; gap: 6px; align-items: center; }
+    .host-page .setup-grid .category-row { display: contents; }
+    .warn { color: #fbbf24; font-size: 0.85rem; }
+    .game-over-notice {
+      background: rgba(255,215,0,0.1); border: 2px solid var(--gold);
+      border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="host-page">
+    <div class="host-header">
+      <div class="title">JEOPARDY! <span style="font-size:1rem; color:rgba(255,255,255,0.5);">Host Panel</span></div>
+      <div id="room-code-display" class="hidden">
+        <div class="room-code-badge">
+          <span class="label">Room Code</span>
+          <span class="code" id="room-code-text">----</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="host-content">
+
+      <!-- SETUP SECTION -->
+      <div id="section-setup" class="section active">
+        <div class="setup-actions">
+          <div class="setup-title">Build Your Board</div>
+          <span id="filled-count" class="q-count-badge">0/25 questions</span>
+          <div style="flex:1"></div>
+          <button class="btn btn-gray btn-sm" onclick="loadSampleBoard('easy')">Easy Sample</button>
+        <button class="btn btn-gray btn-sm" onclick="loadSampleBoard('medium')">Medium Sample</button>
+        <button class="btn btn-gray btn-sm" onclick="loadSampleBoard('hard')">Hard Sample</button>
+        <button class="btn btn-gray btn-sm" onclick="loadSampleBoard('college')" style="border-color:rgba(212,175,55,0.6); color:var(--bright-gold);">College Night</button>
+          <button class="btn btn-gold" onclick="createGame()">
+            Create Game &amp; Get Room Code
+          </button>
+        </div>
+
+        <div id="setup-grid" class="setup-grid"></div>
+
+        <div class="warn" id="setup-warn" style="margin-top:12px;"></div>
+
+        <!-- Saved Boards -->
+        <div style="margin-top:28px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div class="section-heading" style="margin:0;">Saved Boards</div>
+            <button class="btn btn-outline btn-sm" onclick="saveBoard()">+ Save Current Board</button>
+          </div>
+          <div id="saved-boards-list"></div>
+        </div>
+      </div>
+
+      <!-- LOBBY SECTION -->
+      <div id="section-lobby" class="section">
+        <div class="lobby-section">
+          <div style="font-family:'Oswald',sans-serif; font-size:1rem; color:var(--gold); letter-spacing:0.15em; text-transform:uppercase;">
+            Room Code
+          </div>
+          <div class="big-code" id="lobby-code">----</div>
+          <div class="lobby-instructions">
+            Players join at <strong id="join-url" style="color:var(--bright-gold)"></strong><br>
+            Open the board display at the link below and project it to your TV.
+          </div>
+          <div style="margin-bottom: 20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="copyJoinUrl()">Copy Player URL</button>
+            <button class="btn btn-blue btn-sm" onclick="openBoard()">Open Board Display</button>
+          </div>
+
+          <div class="lobby-players card">
+            <div class="section-heading">Players Joined (<span id="lobby-player-count">0</span>)</div>
+            <div id="lobby-player-list" class="players-list">
+              <div class="waiting-msg">Waiting for players to join...</div>
+            </div>
+          </div>
+
+          <div style="margin-top:24px; display:flex; gap:12px; justify-content:center;">
+            <button class="btn btn-gray" onclick="goBackToSetup()">Edit Board</button>
+            <button class="btn btn-gold btn-lg" onclick="startGame()">Start Game</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME SECTION -->
+      <div id="section-game" class="section">
+        <div class="game-layout">
+          <div>
+            <!-- Timer settings + mini board -->
+            <div class="card" style="margin-bottom:12px; padding:12px 16px;">
+              <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                <div class="section-heading" style="margin:0; white-space:nowrap;">Timers</div>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:rgba(255,255,255,0.7); text-transform:none; letter-spacing:0; margin:0;">
+                  Buzz in:
+                  <input type="number" id="buzz-time-limit" value="30" min="5" max="120" style="width:58px; padding:4px 8px; font-size:0.85rem;">s
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:rgba(255,255,255,0.7); text-transform:none; letter-spacing:0; margin:0;">
+                  Answer:
+                  <input type="number" id="answer-time-limit" value="20" min="5" max="60" style="width:58px; padding:4px 8px; font-size:0.85rem;">s
+                </label>
+                <div style="margin-left:auto; font-size:0.75rem; color:rgba(255,255,255,0.35);">Auto-reveals answer on buzz timeout · Auto-marks wrong on answer timeout</div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px;">
+              <div class="section-heading" style="margin-bottom:12px;">Select a Question</div>
+              <div id="mini-board" class="mini-board"></div>
+            </div>
+
+            <!-- Active question panel -->
+            <div id="question-panel" class="question-panel hidden">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div class="q-header">Active Question — <span id="q-cat-label"></span> — <span id="q-val-label"></span></div>
+                <div id="host-timer-display" class="hidden" style="font-family:'Oswald',sans-serif; font-size:1.5rem; font-weight:700; white-space:nowrap;"></div>
+              </div>
+              <div class="section-heading" style="margin-top:12px;">Clue</div>
+              <div class="q-clue" id="q-clue-text"></div>
+              <div class="section-heading">Answer</div>
+              <div class="q-answer" id="q-answer-text"></div>
+
+              <div id="buzz-section">
+                <div class="section-heading" style="margin-top:12px;">Buzz Order</div>
+                <div id="buzz-list" class="buzz-list">
+                  <div style="color:rgba(255,255,255,0.4); font-size:0.85rem; font-style:italic;">Waiting for buzzes...</div>
+                </div>
+              </div>
+
+              <div class="answer-controls" id="answer-controls">
+                <button class="btn btn-green" id="btn-correct" onclick="markAnswer(true)" disabled>
+                  ✓ Correct
+                </button>
+                <button class="btn btn-red" id="btn-wrong" onclick="markAnswer(false)" disabled>
+                  ✗ Wrong
+                </button>
+                <button class="btn btn-gray btn-sm" onclick="revealAnswer()">Reveal Answer</button>
+                <button class="btn btn-gray btn-sm" onclick="dismissQuestion()">Skip / Close</button>
+              </div>
+            </div>
+
+            <div id="no-question-msg" class="card" style="text-align:center; color:rgba(255,255,255,0.4); font-style:italic; padding:20px;">
+              Click a cell on the board above to select a question.
+            </div>
+          </div>
+
+          <!-- Players sidebar -->
+          <div class="players-sidebar">
+            <div class="card">
+              <div class="section-heading">Players (<span id="player-count">0</span>)</div>
+              <div id="player-list" class="players-list"></div>
+            </div>
+
+            <div class="card">
+              <div class="section-heading" style="margin-bottom:10px;">Score Adjustment</div>
+              <select id="adj-player" style="background:rgba(255,255,255,0.1); border:1px solid rgba(212,175,55,0.4); border-radius:6px; color:white; padding:8px; width:100%; font-family:Lato,sans-serif; margin-bottom:8px; outline:none;"></select>
+              <div style="display:flex; gap:6px;">
+                <input type="number" id="adj-amount" placeholder="Amount" style="flex:1;" value="200">
+                <button class="btn btn-green btn-sm" onclick="adjustScore(1)">+</button>
+                <button class="btn btn-red btn-sm" onclick="adjustScore(-1)">−</button>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <button class="btn btn-outline btn-sm" onclick="openBoard()">Open Board Display</button>
+              <button class="btn btn-gray btn-sm" onclick="confirmResetGame()">Reset / New Game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /host-content -->
+  </div><!-- /host-page -->
+
+  <!-- Question Edit Modal -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="modal-title">Edit Question</h3>
+      <label class="daily-double-check">
+        <input type="checkbox" id="modal-dd">
+        <span>Daily Double</span>
+      </label>
+      <div class="form-group">
+        <label>Clue (what you read aloud)</label>
+        <textarea id="modal-clue" placeholder='e.g. "This planet is closest to the sun."' rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Answer (what the correct response is)</label>
+        <input type="text" id="modal-answer" placeholder='e.g. "What is Mercury?"'>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-gray" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-gold" onclick="saveQuestion()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let gameCode = null;
+    let editingCell = null; // {catIndex, qIndex}
+
+    const VALUES = [200, 400, 600, 800, 1000];
+    const NUM_CATS = 5;
+
+    // Board data model
+    let boardData = {
+      categories: Array.from({ length: NUM_CATS }, (_, ci) => ({
+        name: `Category ${ci + 1}`,
+        questions: VALUES.map(v => ({
+          value: v,
+          clue: '',
+          answer: '',
+          answered: false,
+          dailyDouble: false
+        }))
+      }))
+    };
+
+    let players = {};
+    let activeQuestion = null;
+
+    // ==================== TIMERS ====================
+
+    let buzzTimerInterval = null;
+    let answerTimerInterval = null;
+
+    function startBuzzTimer() {
+      clearAllTimers();
+      const seconds = parseInt(document.getElementById('buzz-time-limit').value) || 30;
+      let timeLeft = seconds;
+      updateHostTimer(timeLeft, 'buzz', seconds);
+
+      buzzTimerInterval = setInterval(() => {
+        timeLeft--;
+        updateHostTimer(timeLeft, 'buzz', seconds);
+        if (timeLeft <= 0) {
+          clearAllTimers();
+          socket.emit('reveal-answer');
+          // Give 3s to see the answer then auto-dismiss
+          setTimeout(() => socket.emit('dismiss-question'), 3000);
+        }
+      }, 1000);
+    }
+
+    function startAnswerTimer() {
+      clearInterval(buzzTimerInterval);
+      buzzTimerInterval = null;
+      clearInterval(answerTimerInterval);
+      const seconds = parseInt(document.getElementById('answer-time-limit').value) || 20;
+      let timeLeft = seconds;
+      updateHostTimer(timeLeft, 'answer', seconds);
+
+      answerTimerInterval = setInterval(() => {
+        timeLeft--;
+        updateHostTimer(timeLeft, 'answer', seconds);
+        if (timeLeft <= 0) {
+          clearAllTimers();
+          socket.emit('answer-result', { correct: false });
+        }
+      }, 1000);
+    }
+
+    function clearAllTimers() {
+      clearInterval(buzzTimerInterval);
+      clearInterval(answerTimerInterval);
+      buzzTimerInterval = null;
+      answerTimerInterval = null;
+      const el = document.getElementById('host-timer-display');
+      if (el) { el.textContent = ''; el.classList.add('hidden'); }
+    }
+
+    function updateHostTimer(seconds, mode, total) {
+      const el = document.getElementById('host-timer-display');
+      if (!el) return;
+      el.classList.remove('hidden');
+      const pct = seconds / total;
+      el.style.color = pct <= 0.25 ? 'var(--red)' : pct <= 0.5 ? '#f97316' : 'var(--bright-gold)';
+      el.textContent = `${mode === 'buzz' ? 'Buzz' : 'Answer'}: ${Math.max(0, seconds)}s`;
+    }
+
+    // ==================== SAVE / LOAD BOARDS ====================
+
+    function saveBoard() {
+      const catInputs = document.querySelectorAll('.setup-category-input');
+      catInputs.forEach((inp, i) => {
+        boardData.categories[i].name = inp.value.trim() || `Category ${i + 1}`;
+      });
+      let filled = 0;
+      boardData.categories.forEach(cat => cat.questions.forEach(q => { if (q.clue) filled++; }));
+      if (filled === 0) { showToast('Add some questions first!', 'info'); return; }
+
+      const name = prompt('Name this board:', `Board — ${new Date().toLocaleDateString()}`);
+      if (!name || !name.trim()) return;
+
+      const saved = JSON.parse(localStorage.getItem('jeopardy_boards') || '[]');
+      saved.unshift({ name: name.trim(), timestamp: Date.now(), board: JSON.parse(JSON.stringify(boardData)) });
+      localStorage.setItem('jeopardy_boards', JSON.stringify(saved));
+      renderSavedBoards();
+      showToast(`Saved "${name.trim()}"!`, 'info');
+    }
+
+    function loadSavedBoard_local(index) {
+      const saved = JSON.parse(localStorage.getItem('jeopardy_boards') || '[]');
+      if (!saved[index]) return;
+      if (!confirm(`Load "${saved[index].name}"? This will replace your current board.`)) return;
+      boardData = JSON.parse(JSON.stringify(saved[index].board));
+      renderSetupGrid();
+      showToast(`Loaded "${saved[index].name}"`, 'info');
+    }
+
+    function renameSavedBoard(index) {
+      const saved = JSON.parse(localStorage.getItem('jeopardy_boards') || '[]');
+      if (!saved[index]) return;
+      const name = prompt('Rename board:', saved[index].name);
+      if (!name || !name.trim()) return;
+      saved[index].name = name.trim();
+      localStorage.setItem('jeopardy_boards', JSON.stringify(saved));
+      renderSavedBoards();
+    }
+
+    function deleteSavedBoard(index) {
+      const saved = JSON.parse(localStorage.getItem('jeopardy_boards') || '[]');
+      if (!confirm(`Delete "${saved[index]?.name}"?`)) return;
+      saved.splice(index, 1);
+      localStorage.setItem('jeopardy_boards', JSON.stringify(saved));
+      renderSavedBoards();
+      showToast('Board deleted.', 'info');
+    }
+
+    function renderSavedBoards() {
+      const saved = JSON.parse(localStorage.getItem('jeopardy_boards') || '[]');
+      const container = document.getElementById('saved-boards-list');
+      if (!saved.length) {
+        container.innerHTML = '<div style="color:rgba(255,255,255,0.3); font-size:0.85rem; font-style:italic; padding:6px 0;">No saved boards yet — fill out a board above and click Save.</div>';
+        return;
+      }
+      container.innerHTML = saved.map((b, i) => `
+        <div class="saved-board-item">
+          <div style="min-width:0;">
+            <div class="saved-name">${escHtml(b.name)}</div>
+            <div class="saved-meta">${new Date(b.timestamp).toLocaleDateString()} &nbsp;·&nbsp; ${escHtml(b.board.categories.map(c => c.name).slice(0, 3).join(', '))}${b.board.categories.length > 3 ? '…' : ''}</div>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="btn btn-blue btn-sm" onclick="loadSavedBoard_local(${i})">Load</button>
+            <button class="btn btn-gray btn-sm" onclick="renameSavedBoard(${i})">Rename</button>
+            <button class="btn btn-red btn-sm" onclick="deleteSavedBoard(${i})">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==================== SETUP ====================
+
+    function renderSetupGrid() {
+      const grid = document.getElementById('setup-grid');
+      grid.innerHTML = '';
+
+      // Category name row
+      boardData.categories.forEach((cat, ci) => {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'setup-category-input';
+        inp.value = cat.name;
+        inp.placeholder = `Category ${ci + 1}`;
+        inp.maxLength = 30;
+        inp.addEventListener('input', () => {
+          boardData.categories[ci].name = inp.value || `Category ${ci + 1}`;
+        });
+        grid.appendChild(inp);
+      });
+
+      // Question rows
+      VALUES.forEach((val, qi) => {
+        boardData.categories.forEach((cat, ci) => {
+          const q = cat.questions[qi];
+          const cell = document.createElement('div');
+          cell.className = 'setup-cell' + (q.clue ? ' filled' : '');
+          cell.innerHTML = `
+            <div class="value">$${val}</div>
+            <div class="status">${q.clue ? 'Ready' : 'Click to edit'}</div>
+          `;
+          cell.addEventListener('click', () => openModal(ci, qi));
+          grid.appendChild(cell);
+        });
+      });
+
+      updateFilledCount();
+    }
+
+    function updateFilledCount() {
+      let filled = 0;
+      boardData.categories.forEach(cat => cat.questions.forEach(q => { if (q.clue) filled++; }));
+      document.getElementById('filled-count').textContent = `${filled}/25 questions`;
+    }
+
+    function openModal(catIndex, qIndex) {
+      editingCell = { catIndex, qIndex };
+      const q = boardData.categories[catIndex].questions[qIndex];
+      const cat = boardData.categories[catIndex];
+
+      document.getElementById('modal-title').textContent =
+        `${cat.name || 'Category ' + (catIndex+1)} — $${q.value}`;
+      document.getElementById('modal-clue').value = q.clue || '';
+      document.getElementById('modal-answer').value = q.answer || '';
+      document.getElementById('modal-dd').checked = q.dailyDouble || false;
+      document.getElementById('modal-overlay').classList.remove('hidden');
+      setTimeout(() => document.getElementById('modal-clue').focus(), 100);
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+      editingCell = null;
+    }
+
+    function saveQuestion() {
+      if (!editingCell) return;
+      const { catIndex, qIndex } = editingCell;
+      const q = boardData.categories[catIndex].questions[qIndex];
+      q.clue = document.getElementById('modal-clue').value.trim();
+      q.answer = document.getElementById('modal-answer').value.trim();
+      q.dailyDouble = document.getElementById('modal-dd').checked;
+      closeModal();
+      renderSetupGrid();
+    }
+
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    const SAMPLE_BOARDS = {
+      easy: {
+        categories: [
+          {
+            name: 'Animals',
+            questions: [
+              { value: 200, clue: 'The largest animal on Earth.', answer: 'What is the blue whale?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'This black-and-white bear eats bamboo.', answer: 'What is a panda?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The fastest land animal.', answer: 'What is a cheetah?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'A group of lions is called this.', answer: 'What is a pride?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'This flightless bird is the tallest in the world.', answer: 'What is an ostrich?', answered: false, dailyDouble: true },
+            ]
+          },
+          {
+            name: 'Food & Drink',
+            questions: [
+              { value: 200, clue: 'This Italian dish is topped with tomato sauce and cheese.', answer: 'What is pizza?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The main ingredient in guacamole.', answer: 'What is avocado?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'This French bread is long and thin.', answer: 'What is a baguette?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'Sushi originated in this country.', answer: 'What is Japan?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'This yellow spice gives curry its color.', answer: 'What is turmeric?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Movies',
+            questions: [
+              { value: 200, clue: '"To infinity and beyond!" is the catchphrase of this Toy Story character.', answer: 'Who is Buzz Lightyear?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The king of the jungle in The Lion King.', answer: 'Who is Simba?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'This superhero wears a red-and-blue suit and can shoot webs.', answer: 'Who is Spider-Man?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The first Disney princess.', answer: 'Who is Snow White?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The 2019 movie where Elsa sings "Into the Unknown."', answer: 'What is Frozen 2?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Geography',
+            questions: [
+              { value: 200, clue: 'The capital of France.', answer: 'What is Paris?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The largest ocean on Earth.', answer: 'What is the Pacific Ocean?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'This country is home to the Great Wall.', answer: 'What is China?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The river that runs through Egypt.', answer: 'What is the Nile?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The tallest mountain in the world.', answer: 'What is Mount Everest?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Sports',
+            questions: [
+              { value: 200, clue: 'The number of players on each side in soccer.', answer: 'What is 11?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'This sport uses a puck instead of a ball.', answer: 'What is hockey?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The Olympic rings have this many rings.', answer: 'What is 5?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'Michael Jordan played for this NBA team.', answer: 'What is the Chicago Bulls?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The Grand Slam tennis tournament held in France on clay.', answer: 'What is the French Open (Roland Garros)?', answered: false, dailyDouble: true },
+            ]
+          }
+        ]
+      },
+
+      medium: {
+        categories: [
+          {
+            name: 'Science',
+            questions: [
+              { value: 200, clue: 'The chemical symbol for gold.', answer: 'What is Au?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The process by which plants convert sunlight into food.', answer: 'What is photosynthesis?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'This planet has the most moons in our solar system.', answer: 'What is Saturn?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'DNA stands for this.', answer: 'What is deoxyribonucleic acid?', answered: false, dailyDouble: true },
+              { value: 1000, clue: 'The name of the force that causes objects to fall toward Earth.', answer: 'What is gravity?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'History',
+            questions: [
+              { value: 200, clue: 'The year the United States declared independence.', answer: 'What is 1776?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'Napoleon Bonaparte was exiled to this island after Waterloo.', answer: 'What is Saint Helena?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The year the Berlin Wall fell.', answer: 'What is 1989?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'This empire was ruled by Genghis Khan.', answer: 'What is the Mongol Empire?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The first country to give women the right to vote, in 1893.', answer: 'What is New Zealand?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Pop Culture',
+            questions: [
+              { value: 200, clue: 'The wizard school in Harry Potter.', answer: 'What is Hogwarts?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'Taylor Swift\'s 2023 record-breaking concert tour.', answer: 'What is the Eras Tour?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The fictional African nation in Black Panther.', answer: 'What is Wakanda?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'This show features Walter White in New Mexico.', answer: 'What is Breaking Bad?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The actress who plays Katniss Everdeen in The Hunger Games.', answer: 'Who is Jennifer Lawrence?', answered: false, dailyDouble: true },
+            ]
+          },
+          {
+            name: 'World Capitals',
+            questions: [
+              { value: 200, clue: 'The capital of Australia.', answer: 'What is Canberra?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The capital of Canada.', answer: 'What is Ottawa?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The capital of Brazil.', answer: 'What is Brasília?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The capital of South Africa (seat of government).', answer: 'What is Pretoria?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The capital of Kazakhstan, renamed in 2019.', answer: 'What is Nur-Sultan (Astana)?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Music',
+            questions: [
+              { value: 200, clue: 'The Beatles were from this city.', answer: 'What is Liverpool?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'This artist released "Thriller," the best-selling album of all time.', answer: 'Who is Michael Jackson?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The number of strings on a standard guitar.', answer: 'What is 6?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'This rapper\'s real name is Aubrey Graham.', answer: 'Who is Drake?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'Beethoven composed his 9th Symphony after losing this.', answer: 'What is his hearing?', answered: false, dailyDouble: false },
+            ]
+          }
+        ]
+      },
+
+      hard: {
+        categories: [
+          {
+            name: 'Science',
+            questions: [
+              { value: 200, clue: 'The speed of light in a vacuum, in meters per second.', answer: 'What is 299,792,458 m/s?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'This scientist proposed the theory of general relativity.', answer: 'Who is Albert Einstein?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The only element that is liquid at room temperature and is not a metal.', answer: 'What is bromine?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The Higgs boson was discovered at this particle physics laboratory.', answer: 'What is CERN?', answered: false, dailyDouble: true },
+              { value: 1000, clue: 'The process by which a neutron star\'s gravity is so intense that even light cannot escape.', answer: 'What is a black hole (event horizon)?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'History',
+            questions: [
+              { value: 200, clue: 'The Roman emperor who converted the empire to Christianity.', answer: 'Who is Constantine?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The 1648 treaty that ended the Thirty Years\' War.', answer: 'What is the Peace of Westphalia?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The ancient trade network connecting China to the Mediterranean.', answer: 'What is the Silk Road?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The Ottoman sultan who conquered Constantinople in 1453.', answer: 'Who is Mehmed II?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The year the Magna Carta was signed.', answer: 'What is 1215?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Literature',
+            questions: [
+              { value: 200, clue: 'The author of "1984" and "Animal Farm."', answer: 'Who is George Orwell?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The ship in Moby-Dick, captained by Ahab.', answer: 'What is the Pequod?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'Fyodor Dostoevsky\'s novel about a crime and its psychological aftermath.', answer: 'What is Crime and Punishment?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'This Irish author wrote "Ulysses."', answer: 'Who is James Joyce?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The narrative technique where a story is told from multiple perspectives, used famously in "As I Lay Dying."', answer: 'What is stream of consciousness (multiple narrators)?', answered: false, dailyDouble: true },
+            ]
+          },
+          {
+            name: 'Geography',
+            questions: [
+              { value: 200, clue: 'The only country to border both the Atlantic and Indian Oceans.', answer: 'What is South Africa?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The world\'s largest landlocked country by area.', answer: 'What is Kazakhstan?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The Strait of Malacca separates the Malay Peninsula from this island.', answer: 'What is Sumatra?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'This city is both the capital of Benin and its largest city.', answer: 'What is Porto-Novo (Cotonou is largest)?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'The deepest lake in the world.', answer: 'What is Lake Baikal?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Pop Culture',
+            questions: [
+              { value: 200, clue: 'The show set in Hawkins, Indiana featuring the Upside Down.', answer: 'What is Stranger Things?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The director of Pulp Fiction and Kill Bill.', answer: 'Who is Quentin Tarantino?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'Kendrick Lamar\'s 2015 album widely regarded as a hip-hop classic.', answer: 'What is To Pimp a Butterfly?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The HBO show based on George R. R. Martin\'s "A Song of Ice and Fire."', answer: 'What is Game of Thrones?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'Stanley Kubrick\'s 1968 sci-fi film based on an Arthur C. Clarke novel.', answer: 'What is 2001: A Space Odyssey?', answered: false, dailyDouble: true },
+            ]
+          }
+        ]
+      }
+    };
+
+      SAMPLE_BOARDS.college = {
+        categories: [
+          {
+            name: 'Cinema',
+            questions: [
+              { value: 200, clue: 'The 2019 Bong Joon-ho film that became the first non-English-language Best Picture winner.', answer: 'What is Parasite?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The director behind "Get Out," "Us," and "Nope."', answer: 'Who is Jordan Peele?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'This 2021 Denis Villeneuve epic adapts a Frank Herbert novel set on a desert planet.', answer: 'What is Dune?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The Safdie Brothers\' 2019 thriller where Adam Sandler plays a gambling-addicted jeweler.', answer: 'What is Uncut Gems?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'Jean-Luc Godard\'s 1960 debut, widely considered the first film of the French New Wave movement.', answer: 'What is Breathless (À bout de souffle)?', answered: false, dailyDouble: true },
+            ]
+          },
+          {
+            name: 'Tech & Internet',
+            questions: [
+              { value: 200, clue: 'The year the first iPhone was released.', answer: 'What is 2007?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'This JavaScript runtime lets you run JS code outside the browser, built on Chrome\'s V8 engine.', answer: 'What is Node.js?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'Google was called this when Page and Brin were still at Stanford.', answer: 'What is BackRub?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'The algorithm Google\'s founders invented that ranks pages by counting how many other pages link to them.', answer: 'What is PageRank?', answered: false, dailyDouble: true },
+              { value: 1000, clue: 'This distributed ledger technology uses cryptographic hashing to make records tamper-resistant and underpins Bitcoin.', answer: 'What is blockchain?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Music',
+            questions: [
+              { value: 200, clue: 'Olivia Rodrigo\'s 2021 debut album.', answer: 'What is SOUR?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The artist behind "Montero (Call Me By Your Name)" and "Industry Baby."', answer: 'Who is Lil Nas X?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'Tyler, the Creator\'s 2019 concept album that won the Grammy for Best Rap Album.', answer: 'What is IGOR?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'This Frank Ocean album dropped exclusively on Apple Music in August 2016 after years of delay.', answer: 'What is Blonde?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'Kendrick Lamar\'s "DAMN." made history as the first non-classical, non-jazz work to win this prestigious award in 2018.', answer: 'What is the Pulitzer Prize for Music?', answered: false, dailyDouble: false },
+            ]
+          },
+          {
+            name: 'Poli Sci 101',
+            questions: [
+              { value: 200, clue: 'The 13th Amendment to the US Constitution abolished this.', answer: 'What is slavery?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'This 1954 Supreme Court decision ruled racial segregation in public schools unconstitutional.', answer: 'What is Brown v. Board of Education?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The economic theory that cutting taxes on the wealthy will stimulate growth that benefits everyone.', answer: 'What is trickle-down (supply-side) economics?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'This 2010 Supreme Court ruling held that political spending is protected free speech, opening the floodgates for corporate campaign money.', answer: 'What is Citizens United v. FEC?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'In John Rawls\' theory of justice, you design a fair society without knowing your place in it — he called this designing from behind the "veil of ___."', answer: 'What is ignorance?', answered: false, dailyDouble: true },
+            ]
+          },
+          {
+            name: 'Science',
+            questions: [
+              { value: 200, clue: 'CRISPR-Cas9 is a revolutionary tool used for this biological process.', answer: 'What is gene editing?', answered: false, dailyDouble: false },
+              { value: 400, clue: 'The SI unit of electrical resistance, named after a German physicist.', answer: 'What is the ohm?', answered: false, dailyDouble: false },
+              { value: 600, clue: 'The boundary surrounding a black hole beyond which nothing — not even light — can escape.', answer: 'What is the event horizon?', answered: false, dailyDouble: false },
+              { value: 800, clue: 'Schrödinger\'s cat is a thought experiment illustrating the concept of quantum ___, where a particle exists in multiple states until observed.', answer: 'What is superposition?', answered: false, dailyDouble: false },
+              { value: 1000, clue: 'Predicted by Stephen Hawking in 1974, this phenomenon describes black holes slowly losing mass by emitting thermal radiation.', answer: 'What is Hawking radiation?', answered: false, dailyDouble: false },
+            ]
+          }
+        ]
+      };
+
+    function loadSampleBoard(difficulty) {
+      boardData = JSON.parse(JSON.stringify(SAMPLE_BOARDS[difficulty]));
+      renderSetupGrid();
+      showToast(`${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} sample board loaded!`, 'info');
+    }
+
+    function createGame() {
+      const warn = document.getElementById('setup-warn');
+      let filled = 0;
+      boardData.categories.forEach(cat => cat.questions.forEach(q => { if (q.clue) filled++; }));
+
+      if (filled === 0) {
+        warn.textContent = 'Please add at least one question before creating the game.';
+        return;
+      }
+      warn.textContent = '';
+
+      // Sync category names from inputs
+      const catInputs = document.querySelectorAll('.setup-category-input');
+      catInputs.forEach((inp, i) => {
+        boardData.categories[i].name = inp.value.trim() || `Category ${i + 1}`;
+      });
+
+      socket.emit('create-game', boardData, (res) => {
+        if (res.error) { warn.textContent = res.error; return; }
+        gameCode = res.code;
+        document.getElementById('room-code-text').textContent = gameCode;
+        document.getElementById('lobby-code').textContent = gameCode;
+        document.getElementById('room-code-display').classList.remove('hidden');
+
+        const baseUrl = window.location.origin;
+        document.getElementById('join-url').textContent = baseUrl;
+
+        showSection('lobby');
+      });
+    }
+
+    // ==================== LOBBY ====================
+
+    function showSection(name) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(`section-${name}`).classList.add('active');
+    }
+
+    function goBackToSetup() {
+      showSection('setup');
+    }
+
+    function openBoard() {
+      if (!gameCode) { showToast('Create a game first.', 'info'); return; }
+      window.open(`/board.html?code=${gameCode}`, '_blank');
+    }
+
+    function copyJoinUrl() {
+      const url = `${window.location.origin}/?code=${gameCode}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Player URL copied!', 'info');
+      });
+    }
+
+    function startGame() {
+      if (!gameCode) return;
+      socket.emit('start-game');
+      showSection('game');
+      renderMiniBoard();
+    }
+
+    // ==================== GAME ====================
+
+    function renderMiniBoard() {
+      const board = document.getElementById('mini-board');
+      board.innerHTML = '';
+
+      // Category headers
+      boardData.categories.forEach(cat => {
+        const el = document.createElement('div');
+        el.className = 'mini-category';
+        el.textContent = cat.name;
+        board.appendChild(el);
+      });
+
+      // Question cells
+      VALUES.forEach((val, qi) => {
+        boardData.categories.forEach((cat, ci) => {
+          const q = cat.questions[qi];
+          const cell = document.createElement('div');
+          cell.className = 'mini-cell' + (q.answered ? ' answered' : '');
+          cell.id = `mini-cell-${ci}-${qi}`;
+          cell.innerHTML = q.answered ? '' : `<div class="val">$${val}</div>`;
+          if (!q.answered) {
+            cell.addEventListener('click', () => selectQuestion(ci, qi));
+          }
+          board.appendChild(cell);
+        });
+      });
+    }
+
+    function selectQuestion(catIndex, qIndex) {
+      const buzzTimeLimit = parseInt(document.getElementById('buzz-time-limit').value) || 30;
+      const answerTimeLimit = parseInt(document.getElementById('answer-time-limit').value) || 20;
+      socket.emit('select-question', { catIndex, qIndex, buzzTimeLimit, answerTimeLimit });
+    }
+
+    function updatePlayerList(playerArr) {
+      players = {};
+      playerArr.forEach(p => players[p.id] = p);
+
+      const list = document.getElementById('player-list');
+      const lobbyList = document.getElementById('lobby-player-list');
+      const count = document.getElementById('player-count');
+      const lobbyCount = document.getElementById('lobby-player-count');
+      const adjSel = document.getElementById('adj-player');
+
+      const countNum = playerArr.length;
+      if (count) count.textContent = countNum;
+      if (lobbyCount) lobbyCount.textContent = countNum;
+
+      // Sidebar list
+      if (list) {
+        list.innerHTML = playerArr.length
+          ? playerArr.map(p => `
+            <div class="player-item" id="pi-${p.id}">
+              <span class="player-name">${escHtml(p.name)}</span>
+              <span class="player-score ${p.score < 0 ? 'negative' : ''}" style="${p.score < 0 ? 'color:var(--red)' : ''}">
+                ${p.score < 0 ? '-' : ''}$${Math.abs(p.score)}
+              </span>
+            </div>`).join('')
+          : '<div style="color:rgba(255,255,255,0.3); font-size:0.85rem;">No players yet</div>';
+      }
+
+      // Lobby list
+      if (lobbyList) {
+        lobbyList.innerHTML = playerArr.length
+          ? playerArr.map(p => `
+            <div class="player-item">
+              <span class="player-name">${escHtml(p.name)}</span>
+              <span style="color:rgba(255,255,255,0.4); font-size:0.8rem;">Ready</span>
+            </div>`).join('')
+          : '<div class="waiting-msg">Waiting for players to join...</div>';
+      }
+
+      // Score adjustment dropdown
+      if (adjSel) {
+        const prev = adjSel.value;
+        adjSel.innerHTML = playerArr.map(p =>
+          `<option value="${p.id}">${escHtml(p.name)}</option>`
+        ).join('');
+        if (prev) adjSel.value = prev;
+      }
+    }
+
+    function adjustScore(dir) {
+      const playerId = document.getElementById('adj-player').value;
+      const amount = parseInt(document.getElementById('adj-amount').value) || 200;
+      if (!playerId) return;
+      socket.emit('adjust-score', { playerId, delta: dir * amount });
+    }
+
+    function markAnswer(correct) {
+      socket.emit('answer-result', { correct });
+      document.getElementById('btn-correct').disabled = true;
+      document.getElementById('btn-wrong').disabled = true;
+    }
+
+    function revealAnswer() {
+      socket.emit('reveal-answer');
+    }
+
+    function dismissQuestion() {
+      socket.emit('dismiss-question');
+    }
+
+    function confirmResetGame() {
+      if (confirm('Reset the game? This will clear all scores and reset the board.')) {
+        socket.emit('reset-game', null);
+        boardData.categories.forEach(cat => cat.questions.forEach(q => q.answered = false));
+        renderMiniBoard();
+        hideQuestionPanel();
+        showToast('Game reset!', 'info');
+      }
+    }
+
+    function showQuestionPanel(q) {
+      activeQuestion = q;
+      document.getElementById('question-panel').classList.remove('hidden');
+      document.getElementById('no-question-msg').classList.add('hidden');
+
+      document.getElementById('q-cat-label').textContent = q.category;
+      document.getElementById('q-val-label').textContent = `$${q.value}`;
+      document.getElementById('q-clue-text').textContent = q.clue;
+      document.getElementById('q-answer-text').textContent = q.answer;
+
+      document.getElementById('buzz-list').innerHTML =
+        '<div style="color:rgba(255,255,255,0.4); font-size:0.85rem; font-style:italic;">Waiting for buzzes...</div>';
+      document.getElementById('btn-correct').disabled = true;
+      document.getElementById('btn-wrong').disabled = true;
+    }
+
+    function hideQuestionPanel() {
+      activeQuestion = null;
+      document.getElementById('question-panel').classList.add('hidden');
+      document.getElementById('no-question-msg').classList.remove('hidden');
+    }
+
+    // ==================== SOCKET EVENTS ====================
+
+    socket.on('players-update', updatePlayerList);
+    socket.on('player-left', ({ players: p }) => updatePlayerList(p));
+
+    socket.on('question-active', (q) => {
+      showQuestionPanel(q);
+      startBuzzTimer();
+    });
+
+    socket.on('buzz-update', ({ buzzOrder }) => {
+      const list = document.getElementById('buzz-list');
+      if (!buzzOrder.length) {
+        list.innerHTML = '<div style="color:rgba(255,255,255,0.4); font-size:0.85rem; font-style:italic;">Waiting for buzzes...</div>';
+        return;
+      }
+
+      list.innerHTML = buzzOrder.map((b, i) => `
+        <div class="buzz-item ${i === 0 ? 'first' : ''}">
+          <span class="buzz-rank">${i + 1}</span>
+          <span>${escHtml(b.name)}</span>
+          ${i === 0 ? '<span style="margin-left:auto; font-size:0.75rem; color:var(--gold);">ANSWERING</span>' : ''}
+        </div>
+      `).join('');
+
+      // Highlight player row
+      document.querySelectorAll('.player-item').forEach(el => el.classList.remove('first-buzzer', 'buzzed'));
+      buzzOrder.forEach((b, i) => {
+        const el = document.getElementById(`pi-${b.id}`);
+        if (el) el.classList.add(i === 0 ? 'first-buzzer' : 'buzzed');
+      });
+
+      // Enable correct/wrong if there's a first buzzer, start answer timer
+      if (buzzOrder.length > 0) {
+        document.getElementById('btn-correct').disabled = false;
+        document.getElementById('btn-wrong').disabled = false;
+        startAnswerTimer();
+      }
+    });
+
+    socket.on('answer-correct', ({ playerName, value, players: p }) => {
+      clearAllTimers();
+      updatePlayerList(p);
+      showToast(`✓ ${playerName} got it right! +$${value}`, 'correct');
+      document.querySelectorAll('.player-item').forEach(el => el.classList.remove('first-buzzer', 'buzzed'));
+    });
+
+    socket.on('answer-wrong', ({ playerName, value, players: p }) => {
+      clearAllTimers(); // clear answer timer; next buzz-update will restart it for next person
+      updatePlayerList(p);
+      showToast(`✗ ${playerName} got it wrong. -$${value}`, 'wrong');
+      document.getElementById('btn-correct').disabled = true;
+      document.getElementById('btn-wrong').disabled = true;
+      document.querySelectorAll('.player-item').forEach(el => el.classList.remove('first-buzzer', 'buzzed'));
+    });
+
+    socket.on('question-closed', () => {
+      clearAllTimers();
+      hideQuestionPanel();
+      // Update mini board
+      if (activeQuestion) {
+        const cell = document.getElementById(`mini-cell-${activeQuestion.catIndex}-${activeQuestion.qIndex}`);
+        if (cell) {
+          cell.classList.add('answered');
+          cell.innerHTML = '';
+          cell.style.cursor = 'default';
+          cell.onclick = null;
+        }
+        boardData.categories[activeQuestion.catIndex].questions[activeQuestion.qIndex].answered = true;
+      }
+      activeQuestion = null;
+    });
+
+    socket.on('game-reset', ({ board, players: p }) => {
+      boardData = board;
+      updatePlayerList(p);
+      renderMiniBoard();
+      hideQuestionPanel();
+    });
+
+    // ==================== UTILITIES ====================
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ==================== INIT ====================
+    renderSetupGrid();
+    renderSavedBoards();
+  </script>
+</body>
+</html>

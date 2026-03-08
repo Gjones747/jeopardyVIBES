@@ -39,23 +39,6 @@
       background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2);
       color: white; border-radius: 6px; padding: 7px 10px; font-size: 0.9rem;
     }
-    .fj-modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-      display: flex; align-items: center; justify-content: center; z-index: 200;
-    }
-    .fj-modal {
-      background: #1a1a2e; border: 2px solid var(--gold); border-radius: 12px;
-      padding: 28px 32px; width: 100%; max-width: 520px;
-    }
-    .fj-modal h2 { font-family: 'Oswald', sans-serif; color: var(--bright-gold); font-size: 1.6rem; margin-bottom: 18px; }
-    .fj-modal label { font-size: 0.82rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 4px; }
-    .fj-modal input, .fj-modal textarea {
-      width: 100%; box-sizing: border-box; margin-bottom: 14px;
-      background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2);
-      color: white; border-radius: 6px; padding: 9px 12px; font-size: 0.95rem;
-    }
-    .fj-modal textarea { resize: vertical; min-height: 80px; font-family: inherit; }
-    .fj-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
     .fj-host-panel {
       background: rgba(0,50,100,0.3); border: 1px solid rgba(100,150,255,0.3);
       border-radius: 10px; padding: 16px; margin-bottom: 16px;
@@ -92,7 +75,7 @@
 <body>
   <div class="host-page">
     <div class="host-header">
-      <div class="title">JEOPARDY! <span style="font-size:1rem; color:rgba(255,255,255,0.5);">Host Panel</span></div>
+      <a href="/" class="title" style="text-decoration:none; cursor:pointer;" title="Back to main menu">JEOPARDY! <span style="font-size:1rem; color:rgba(255,255,255,0.5);">Host Panel</span></a>
       <div id="room-code-display" class="hidden">
         <div class="room-code-badge">
           <span class="label">Room Code</span>
@@ -116,10 +99,10 @@
             <button class="btn btn-gold btn-sm" onclick="createGame()" id="create-btn">Create Game</button>
             <button class="btn btn-sm" onclick="openBoardUrl()" id="board-btn" disabled>Open Board Display</button>
             <button class="btn btn-sm" onclick="startGame()" id="start-btn" disabled>Start Game</button>
-            <button class="btn btn-sm" style="background:rgba(100,150,255,0.2); border-color:rgba(100,150,255,0.4); color:#93c5fd;"
-              onclick="openFinalJeopardyModal()" id="fj-btn" disabled>Final Jeopardy</button>
-            <button class="btn btn-sm" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3); color:#f87171;"
-              onclick="resetGame()" id="reset-btn" disabled>Reset Game</button>
+            <button class="btn btn-sm hidden" style="background:rgba(100,150,255,0.2); border-color:rgba(100,150,255,0.4); color:#93c5fd;"
+              onclick="openFinalJeopardyModal()" id="fj-btn">Final Jeopardy</button>
+            <button class="btn btn-sm hidden" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3); color:#f87171;"
+              onclick="resetGame()" id="reset-btn">Reset Game</button>
           </div>
         </div>
 
@@ -137,7 +120,7 @@
             </div>
             <div>
               <label>Answer Time (s)</label>
-              <input type="number" id="answer-time-limit" value="20" min="5" max="60">
+              <input type="number" id="answer-time-limit" value="10" min="5" max="60">
             </div>
           </div>
         </div>
@@ -148,18 +131,18 @@
 
         <!-- ===== SETUP SECTION ===== -->
         <div class="section active" id="section-setup">
-          <div class="setup-actions">
-            <div class="setup-title">Board Builder</div>
-            <button class="btn btn-sm" onclick="saveBoard()">Save Board</button>
-            <button class="btn btn-sm" onclick="showSaved()">Load Saved</button>
-            <button class="btn btn-sm" onclick="clearBoard()">Clear</button>
-            <select id="preset-select" onchange="loadPreset(this.value)" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.2); color:white; border-radius:6px; padding:6px 10px; font-size:0.85rem;">
-              <option value="">-- Load Preset --</option>
+          <div class="setup-toolbar">
+            <div class="setup-toolbar-title">Board Builder</div>
+            <select id="preset-select" onchange="loadPreset(this.value)" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.2); color:white; border-radius:6px; padding:6px 10px; font-size:0.85rem; cursor:pointer;">
+              <option value="">Load Preset...</option>
               <option value="easy">Easy / Family Night</option>
               <option value="medium">Medium / General</option>
               <option value="hard">Hard / Expert</option>
               <option value="college">College Night</option>
             </select>
+            <button class="btn btn-sm" onclick="showSaved()">Saved Boards</button>
+            <button class="btn btn-sm" onclick="saveBoard()">Save Board</button>
+            <button class="btn btn-sm btn-gray" onclick="clearBoard()">Clear</button>
           </div>
 
           <!-- Saved boards panel -->
@@ -173,6 +156,28 @@
 
           <div class="setup-grid" id="setup-grid">
             <!-- JS rendered -->
+          </div>
+
+          <!-- Final Jeopardy setup (built into the board builder) -->
+          <div class="fj-setup-card">
+            <div class="fj-setup-header">
+              <div class="fj-setup-title">Final Jeopardy</div>
+              <div class="fj-setup-badge">Optional</div>
+            </div>
+            <div class="fj-setup-fields">
+              <div>
+                <label>Category</label>
+                <input type="text" id="fj-setup-cat" placeholder="e.g. American History" maxlength="60">
+              </div>
+              <div>
+                <label>Clue</label>
+                <textarea id="fj-setup-clue" placeholder="Enter the Final Jeopardy clue..." style="resize:vertical; min-height:60px;"></textarea>
+              </div>
+              <div>
+                <label>Correct Answer</label>
+                <input type="text" id="fj-setup-answer" placeholder="e.g. What is the Declaration of Independence?" maxlength="200">
+              </div>
+            </div>
           </div>
         </div>
 
@@ -196,33 +201,72 @@
           </div>
 
           <!-- Active question panel -->
-          <div id="active-q-panel" class="hidden" style="background:rgba(0,0,80,0.4); border:1px solid rgba(100,100,255,0.3); border-radius:10px; padding:16px; margin-bottom:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+          <div id="active-q-panel" class="active-q-panel hidden">
+            <div style="display:flex; align-items:flex-start; gap:16px;">
               <div style="flex:1;">
-                <div style="font-size:0.75rem; color:var(--gold); margin-bottom:4px;" id="aq-cat"></div>
-                <div style="font-size:1.1rem; font-weight:600; margin-bottom:4px;" id="aq-clue"></div>
-                <div style="font-size:0.8rem; color:rgba(255,255,255,0.45);">Answer: <span id="aq-answer" style="color:rgba(255,255,255,0.7);"></span></div>
+                <div class="aq-meta" id="aq-cat"></div>
+                <div class="aq-clue-text" id="aq-clue"></div>
+                <div class="aq-answer-row">Answer: <span id="aq-answer"></span></div>
+                <div class="aq-action-row">
+                  <button class="btn btn-green" onclick="answerResult(true)">Correct</button>
+                  <button class="btn btn-red" onclick="answerResult(false)">Wrong</button>
+                  <button class="btn btn-sm btn-gray" onclick="revealAnswer()">Reveal Answer</button>
+                  <button class="btn btn-sm btn-gray" onclick="dismissQuestion()">Dismiss</button>
+                </div>
               </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="btn" style="background:rgba(74,222,128,0.2); border-color:rgba(74,222,128,0.5); color:#4ade80;" onclick="answerResult(true)">Correct</button>
-                <button class="btn" style="background:rgba(239,68,68,0.2); border-color:rgba(239,68,68,0.5); color:#f87171;" onclick="answerResult(false)">Wrong</button>
-                <button class="btn btn-sm" onclick="revealAnswer()">Reveal Answer</button>
-                <button class="btn btn-sm" onclick="dismissQuestion()">Dismiss</button>
+              <!-- Host timer -->
+              <div id="host-timer" class="hidden" style="flex-shrink:0; text-align:center;">
+                <div style="position:relative; width:72px; height:72px;">
+                  <svg viewBox="0 0 72 72" width="72" height="72" style="transform:rotate(-90deg);">
+                    <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"/>
+                    <circle id="host-timer-ring" cx="36" cy="36" r="30" fill="none"
+                      stroke="#4ade80" stroke-width="5" stroke-linecap="round"
+                      stroke-dasharray="188.5" stroke-dashoffset="0"
+                      style="transition:stroke-dashoffset 0.9s linear, stroke 0.3s;"/>
+                  </svg>
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+                    <div id="host-timer-num" style="font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;color:white;line-height:1;">30</div>
+                    <div id="host-timer-label" style="font-size:0.5rem;letter-spacing:0.1em;color:rgba(255,255,255,0.6);text-transform:uppercase;">BUZZ</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Buzz order display -->
-          <div id="buzz-panel" class="hidden" style="background:rgba(0,0,0,0.3); border-radius:8px; padding:12px 16px; margin-bottom:16px;">
+          <div id="buzz-panel" class="buzz-order-panel hidden">
             <div class="section-heading">Buzz Order</div>
             <div id="buzz-order-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
           </div>
 
-          <!-- Final Jeopardy host panel -->
+          <!-- Final Jeopardy inline launch panel (replaces old modal) -->
+          <div id="fj-launch-panel" class="fj-launch-panel hidden">
+            <h3>Final Jeopardy</h3>
+            <div class="fj-launch-fields">
+              <div>
+                <label>Category</label>
+                <input type="text" id="fj-cat-input" placeholder="e.g. American History" maxlength="60">
+              </div>
+              <div>
+                <label>Clue</label>
+                <textarea id="fj-clue-input" placeholder="Enter the Final Jeopardy clue..." style="resize:vertical; min-height:60px;"></textarea>
+              </div>
+              <div>
+                <label>Correct Answer</label>
+                <input type="text" id="fj-answer-input" placeholder="e.g. What is the Declaration?" maxlength="200">
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-gold" onclick="startFinalJeopardy()">Launch Final Jeopardy</button>
+              <button class="btn btn-sm btn-gray" onclick="hideFJLaunch()">Cancel</button>
+            </div>
+          </div>
+
+          <!-- Final Jeopardy host judging panel -->
           <div id="fj-host-panel" class="fj-host-panel hidden">
             <h3>Final Jeopardy</h3>
             <div id="fj-phase-wager">
-              <div style="margin-bottom:12px; color:rgba(255,255,255,0.7);">
+              <div style="margin-bottom:12px; color:rgba(255,255,255,0.7); font-size:0.9rem;">
                 Wagers received: <strong id="fj-wager-count">0</strong> / <strong id="fj-total-players">0</strong>
               </div>
               <button class="btn btn-gold" onclick="revealFinalClue()">Reveal Final Clue</button>
@@ -230,41 +274,39 @@
             <div id="fj-phase-judge" class="hidden" style="margin-top:12px;">
               <div style="font-size:0.82rem; color:rgba(255,255,255,0.5); margin-bottom:10px;">Judge each player's answer:</div>
               <div id="fj-judge-list" class="fj-judge-list"></div>
-              <button class="btn btn-sm" style="margin-top:14px; background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3); color:#f87171;" onclick="endGame()">End Game</button>
+              <button class="btn btn-sm btn-red" style="margin-top:14px;" onclick="endGame()">End Game</button>
             </div>
           </div>
 
-          <!-- Game over notice -->
+          <!-- Game over -->
           <div id="game-over-panel" class="hidden">
-            <div class="game-over-notice">
-              <div style="font-family:'Oswald',sans-serif; font-size:1.5rem; color:var(--bright-gold); margin-bottom:8px;">Game Over!</div>
-              <div style="color:rgba(255,255,255,0.7); margin-bottom:14px;">Thanks for playing!</div>
-              <button class="btn btn-gold" onclick="resetGame()">Play Again</button>
+            <div class="game-over-card">
+              <div class="go-title">Game Over!</div>
+              <div class="go-sub">Thanks for playing!</div>
+              <button class="btn btn-gold btn-lg" onclick="resetGame()">Play Again</button>
             </div>
           </div>
 
           <!-- Mini board -->
-          <div class="section-heading">Board</div>
-          <div class="mini-board" id="mini-board"></div>
+          <div class="mini-board-section">
+            <div class="section-heading">Board</div>
+            <div class="mini-board" id="mini-board"></div>
+          </div>
         </div>
 
       </div>
     </div>
   </div>
 
-  <!-- Final Jeopardy setup modal -->
-  <div id="fj-modal-overlay" class="fj-modal-overlay hidden">
-    <div class="fj-modal">
-      <h2>Final Jeopardy Setup</h2>
-      <label>Category</label>
-      <input type="text" id="fj-cat-input" placeholder="e.g. American History" maxlength="60">
-      <label>Clue</label>
-      <textarea id="fj-clue-input" placeholder="Enter the Final Jeopardy clue..."></textarea>
-      <label>Correct Answer</label>
-      <input type="text" id="fj-answer-input" placeholder="e.g. What is the Declaration of Independence?">
-      <div class="fj-modal-actions">
-        <button class="btn btn-sm" onclick="closeFJModal()">Cancel</button>
-        <button class="btn btn-gold" onclick="startFinalJeopardy()">Start Final Jeopardy</button>
+  <!-- Save board dialog (replaces browser prompt) -->
+  <div id="save-dialog" class="save-dialog hidden">
+    <div class="save-dialog-box">
+      <h3>Save Board</h3>
+      <label>Board Name</label>
+      <input type="text" id="save-board-name" placeholder="e.g. Game Night #3" maxlength="60" style="margin-top:4px;">
+      <div class="save-dialog-actions">
+        <button class="btn btn-sm btn-gray" onclick="closeSaveDialog()">Cancel</button>
+        <button class="btn btn-gold" onclick="confirmSaveBoard()">Save</button>
       </div>
     </div>
   </div>
@@ -282,6 +324,44 @@
     let fjData = null;
     let fjWagerCount = 0;
     let fjPlayers = [];
+
+    // ==================== HOST TIMER ====================
+
+    const HOST_RING_CIRC = 2 * Math.PI * 30; // r=30 → ~188.5
+    let hostTimerInterval = null;
+
+    function startHostTimer(seconds, mode) {
+      clearHostTimer();
+      let timeLeft = seconds;
+      const wrap = document.getElementById('host-timer');
+      const numEl = document.getElementById('host-timer-num');
+      const labelEl = document.getElementById('host-timer-label');
+      const ringEl = document.getElementById('host-timer-ring');
+
+      wrap.classList.remove('hidden');
+      numEl.textContent = timeLeft;
+      labelEl.textContent = mode === 'buzz' ? 'BUZZ' : 'ANSWER';
+      ringEl.style.stroke = mode === 'buzz' ? '#4ade80' : '#fbbf24';
+      ringEl.style.strokeDasharray = HOST_RING_CIRC;
+      ringEl.style.strokeDashoffset = 0;
+
+      hostTimerInterval = setInterval(() => {
+        timeLeft--;
+        const pct = Math.max(0, timeLeft / seconds);
+        numEl.textContent = Math.max(0, timeLeft);
+        ringEl.style.strokeDashoffset = HOST_RING_CIRC * (1 - pct);
+        if (pct <= 0.25) ringEl.style.stroke = '#ef4444';
+        else if (pct <= 0.5) ringEl.style.stroke = '#f97316';
+        else if (mode === 'answer') ringEl.style.stroke = '#fbbf24';
+        if (timeLeft <= 0) clearHostTimer();
+      }, 1000);
+    }
+
+    function clearHostTimer() {
+      clearInterval(hostTimerInterval);
+      hostTimerInterval = null;
+      document.getElementById('host-timer').classList.add('hidden');
+    }
 
     // ==================== PRESETS ====================
 
@@ -608,7 +688,12 @@
         });
         categories.push({ name, questions });
       }
-      return { categories };
+      const finalJeopardy = {
+        category: document.getElementById('fj-setup-cat').value.trim(),
+        clue: document.getElementById('fj-setup-clue').value.trim(),
+        answer: document.getElementById('fj-setup-answer').value.trim(),
+      };
+      return { categories, finalJeopardy };
     }
 
     function loadBoardData(data) {
@@ -626,6 +711,13 @@
           if (ddEl) ddEl.checked = q.dailyDouble || false;
         });
       });
+      // Load Final Jeopardy fields if present
+      if (data.finalJeopardy) {
+        const fj = data.finalJeopardy;
+        document.getElementById('fj-setup-cat').value = fj.category || '';
+        document.getElementById('fj-setup-clue').value = fj.clue || '';
+        document.getElementById('fj-setup-answer').value = fj.answer || '';
+      }
     }
 
     function loadPreset(key) {
@@ -641,12 +733,22 @@
     // ==================== SAVE / LOAD ====================
 
     function saveBoard() {
-      const name = prompt('Name for this board?');
-      if (!name) return;
+      document.getElementById('save-board-name').value = '';
+      document.getElementById('save-dialog').classList.remove('hidden');
+      setTimeout(() => document.getElementById('save-board-name').focus(), 50);
+    }
+
+    function closeSaveDialog() {
+      document.getElementById('save-dialog').classList.add('hidden');
+    }
+
+    function confirmSaveBoard() {
+      const name = document.getElementById('save-board-name').value.trim();
+      if (!name) { document.getElementById('save-board-name').focus(); return; }
       const boards = JSON.parse(localStorage.getItem('jeopardy-boards') || '[]');
       boards.push({ name, data: getBoardData(), saved: new Date().toLocaleDateString() });
       localStorage.setItem('jeopardy-boards', JSON.stringify(boards));
-      alert('Board saved!');
+      closeSaveDialog();
     }
 
     function showSaved() {
@@ -702,8 +804,8 @@
         document.getElementById('room-code-display').classList.remove('hidden');
         document.getElementById('board-btn').disabled = false;
         document.getElementById('start-btn').disabled = false;
-        document.getElementById('fj-btn').disabled = false;
-        document.getElementById('reset-btn').disabled = false;
+        document.getElementById('fj-btn').classList.remove('hidden');
+        document.getElementById('reset-btn').classList.remove('hidden');
         document.getElementById('create-btn').textContent = 'Recreate Game';
         document.getElementById('players-panel').style.display = '';
         showSection('game');
@@ -713,7 +815,11 @@
 
     function openBoardUrl() {
       if (!gameCode) return;
-      window.open(`/board.html?code=${gameCode}`, '_blank');
+      const w = 1280, h = 800;
+      const left = Math.round((screen.width - w) / 2);
+      const top = Math.round((screen.height - h) / 2);
+      window.open(`/board.html?code=${gameCode}`, 'JeopardyBoard',
+        `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
     }
 
     function startGame() {
@@ -730,6 +836,7 @@
       document.getElementById('buzz-panel').classList.add('hidden');
       document.getElementById('dd-wager-panel').classList.add('hidden');
       document.getElementById('fj-host-panel').classList.add('hidden');
+      document.getElementById('fj-launch-panel').classList.add('hidden');
       document.getElementById('game-over-panel').classList.add('hidden');
       renderMiniBoard();
     }
@@ -758,7 +865,7 @@
           d.innerHTML = `<span>$${val}</span>` + (q?.dailyDouble ? '<span class="dd-star">DD</span>' : '');
           if (!q?.answered) {
             const buzzLimit = parseInt(document.getElementById('buzz-time-limit').value) || 30;
-            const ansLimit = parseInt(document.getElementById('answer-time-limit').value) || 20;
+            const ansLimit = parseInt(document.getElementById('answer-time-limit').value) || 10;
             d.onclick = () => selectQuestion(c, r, buzzLimit, ansLimit);
           }
           grid.appendChild(d);
@@ -815,6 +922,7 @@
 
     function closeQuestionUI() {
       activeQuestion = null;
+      clearHostTimer();
       document.getElementById('active-q-panel').classList.add('hidden');
       document.getElementById('buzz-panel').classList.add('hidden');
       document.getElementById('dd-wager-panel').classList.add('hidden');
@@ -826,19 +934,35 @@
     // ==================== FINAL JEOPARDY ====================
 
     function openFinalJeopardyModal() {
-      document.getElementById('fj-modal-overlay').classList.remove('hidden');
+      // Pre-populate from setup fields
+      const cat = document.getElementById('fj-setup-cat').value.trim();
+      const clue = document.getElementById('fj-setup-clue').value.trim();
+      const answer = document.getElementById('fj-setup-answer').value.trim();
+      document.getElementById('fj-cat-input').value = cat;
+      document.getElementById('fj-clue-input').value = clue;
+      document.getElementById('fj-answer-input').value = answer;
+      document.getElementById('fj-launch-panel').classList.remove('hidden');
+      showSection('game');
     }
 
-    function closeFJModal() {
-      document.getElementById('fj-modal-overlay').classList.add('hidden');
+    function hideFJLaunch() {
+      document.getElementById('fj-launch-panel').classList.add('hidden');
     }
 
     function startFinalJeopardy() {
       const category = document.getElementById('fj-cat-input').value.trim();
       const clue = document.getElementById('fj-clue-input').value.trim();
       const answer = document.getElementById('fj-answer-input').value.trim();
-      if (!category || !clue || !answer) { alert('Please fill in all Final Jeopardy fields.'); return; }
-      closeFJModal();
+      if (!category || !clue || !answer) {
+        // Highlight empty fields
+        ['fj-cat-input','fj-clue-input','fj-answer-input'].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el.value.trim()) el.style.borderColor = 'rgba(239,68,68,0.7)';
+          else el.style.borderColor = '';
+        });
+        return;
+      }
+      hideFJLaunch();
       socket.emit('start-final-jeopardy', { category, clue, answer });
     }
 
@@ -946,6 +1070,7 @@
       showActiveQuestion(q);
       document.getElementById('buzz-order-list').innerHTML = '';
       document.getElementById('buzz-panel').classList.remove('hidden');
+      if (!q.dailyDouble && q.buzzTimeLimit) startHostTimer(q.buzzTimeLimit, 'buzz');
     });
 
     socket.on('dd-revealed', ({ playerName, wager }) => {
@@ -953,6 +1078,7 @@
     });
 
     socket.on('buzz-update', ({ buzzOrder }) => {
+      if (activeQuestion?.answerTimeLimit) startHostTimer(activeQuestion.answerTimeLimit, 'answer');
       const list = document.getElementById('buzz-order-list');
       list.innerHTML = buzzOrder.map((b, i) => `
         <div style="padding:4px 10px; border-radius:20px; font-size:0.85rem;
@@ -965,10 +1091,13 @@
     });
 
     socket.on('answer-correct', ({ players }) => {
+      clearHostTimer();
       updatePlayerList(players);
     });
 
     socket.on('answer-wrong', ({ players }) => {
+      // Next buzzer gets a fresh buzz window
+      if (activeQuestion?.buzzTimeLimit) startHostTimer(activeQuestion.buzzTimeLimit, 'buzz');
       updatePlayerList(players);
     });
 
@@ -987,6 +1116,7 @@
 
     socket.on('final-jeopardy-started', ({ players }) => {
       gameState = 'final-jeopardy';
+      clearHostTimer();
       showFJPanel(players);
       document.getElementById('active-q-panel').classList.add('hidden');
     });
@@ -1033,6 +1163,12 @@
     // ==================== INIT ====================
 
     buildSetupGrid();
+
+    // Save dialog keyboard handler
+    document.getElementById('save-board-name').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') confirmSaveBoard();
+      if (e.key === 'Escape') closeSaveDialog();
+    });
   </script>
 </body>
 </html>

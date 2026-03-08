@@ -523,7 +523,7 @@
       showBuzzBanner(firstBuzzerName);
       showBuzzOrder(buzzOrder);
       // Switch timer to answer countdown
-      const answerTime = gameData?.activeQuestion?.answerTimeLimit || 20;
+      const answerTime = gameData?.activeQuestion?.answerTimeLimit || 10;
       startBoardTimer(answerTime, 'answer');
     });
 

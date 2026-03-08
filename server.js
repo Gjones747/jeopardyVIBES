@@ -136,7 +136,7 @@ io.on('connection', (socket) => {
       value: q.value,
       dailyDouble: q.dailyDouble || false,
       buzzTimeLimit: Math.max(5, Math.min(120, parseInt(buzzTimeLimit) || 30)),
-      answerTimeLimit: Math.max(5, Math.min(60, parseInt(answerTimeLimit) || 20)),
+      answerTimeLimit: Math.max(5, Math.min(60, parseInt(answerTimeLimit) || 10)),
       ddPlayerId: null,
       ddWager: null,
     };

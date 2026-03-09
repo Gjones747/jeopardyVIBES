@@ -6,7 +6,7 @@ A self-hosted multiplayer Jeopardy game for local play. One device runs the host
 
 This game is also publicly accessible at:
 
-https://jeopardy.kaolun.site
+[Jeopardy](https://jeopardy.kaolun.site)
 
 ## Requirements
 

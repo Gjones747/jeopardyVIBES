@@ -2,6 +2,12 @@
 
 A self-hosted multiplayer Jeopardy game for local play. One device runs the host panel, one is projected to the TV as the board, and players join from their phones.
 
+## Hosted Version
+
+This game is also publicly accessible at:
+
+https://jeopardy.kaolun.site
+
 ## Requirements
 
 - Node.js (v18 or newer)
@@ -14,7 +20,7 @@ npm install
 node server.js
 ```
 
-The server starts on port 3000 by default.
+The server starts on port 2999 by default.
 
 ## Playing on a Local Network
 

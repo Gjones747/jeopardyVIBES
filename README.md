@@ -6,7 +6,7 @@ A self-hosted multiplayer Jeopardy game for local play. One device runs the host
 
 This game is also publicly accessible at:
 
-https://jeopardy.kaolun.site
+https://jeopardy.kaolun.org
 
 ## Requirements
 
@@ -36,12 +36,12 @@ Then share the URL with everyone: `http://YOUR_IP:3000`
 
 There are four views:
 
-| View | URL | Used by |
-|------|-----|---------|
-| Join / Home | `/` | Players to join |
-| Host Panel | `/host.html` | Game host |
-| Board Display | `/board.html` | TV or projector |
-| Player View | `/player.html` | Each player's phone |
+| View          | URL            | Used by             |
+| ------------- | -------------- | ------------------- |
+| Join / Home   | `/`            | Players to join     |
+| Host Panel    | `/host.html`   | Game host           |
+| Board Display | `/board.html`  | TV or projector     |
+| Player View   | `/player.html` | Each player's phone |
 
 ## Running a Game
 

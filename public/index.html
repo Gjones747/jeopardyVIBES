@@ -3,72 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jeopardy!</title>
+  <meta name="theme-color" content="#14120f">
+  <title>jeopardyVIBES</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .landing {
+      min-height: 100vh; min-height: 100dvh;
+      max-width: 1120px; margin: 0 auto;
+      padding: 24px 20px 40px;
+      display: flex; flex-direction: column;
+    }
+    .landing-top { display: flex; justify-content: space-between; align-items: center; }
+    .landing-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 64px;
+      align-items: center;
+      padding: 48px 0;
+    }
+    .pitch .h1 { font-size: clamp(2.6rem, 6.4vw, 5.2rem); margin: 14px 0 20px; }
+    .pitch .h1 mark { background: none; color: var(--hi); }
+    .pitch .lede { max-width: 30ch; }
+    .how { margin-top: 28px; color: var(--muted); font-weight: 500; }
+    .how span { color: var(--hi); margin: 0 4px; }
+    .join-card { padding: 0; background: none; border: none; border-radius: 0; display: flex; flex-direction: column; gap: 16px; }
+    .join-card input { background: var(--ink-2); }
+    .join-card .h2 { font-size: 1.6rem; }
+    .host-link { display: inline-block; margin-top: 18px; color: var(--paper-2); text-decoration: none; font-size: 0.95rem; }
+    .host-link b { color: var(--paper); font-weight: 600; text-decoration: underline; text-decoration-color: var(--hi); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+    .host-link:hover b { color: var(--hi); }
+
+    .landing-foot { color: var(--faint); font-size: 0.8rem; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+    @media (max-width: 860px) {
+      .landing { padding: 18px 16px 28px; }
+      .landing-body { grid-template-columns: 1fr; gap: 28px; padding: 28px 0; align-items: start; }
+      .pitch .h1 { margin: 10px 0 12px; }
+      .how { display: none; }
+    }
+  </style>
 </head>
 <body>
-  <div class="landing-page">
-    <div class="landing-logo">
-      <div class="page-title">JEOPARDY!</div>
-      <div class="subtitle">The classic quiz game</div>
-    </div>
+  <main class="landing">
+    <header class="landing-top">
+      <a class="wm" href="/">jeopardy<b>VIBES</b></a>
+      <span class="chip">Thursdays · 8:30 pm</span>
+    </header>
 
-    <div class="landing-options">
-      <div class="option-card">
-        <h2>Host a Game</h2>
-        <p style="color:rgba(255,255,255,0.6); font-size:0.9rem; margin-bottom:20px; line-height:1.6;">
-          Build a custom board, invite players, and control the game from your device.
-        </p>
-        <a href="/host.html" class="btn btn-gold btn-lg" style="width:100%; justify-content:center;">
-          Create Game
-        </a>
+    <section class="landing-body">
+      <div class="pitch">
+        <div class="eyebrow">Dorm trivia night</div>
+        <h1 class="h1">Grab your phone.<br>You're the <mark>buzzer</mark>.</h1>
+        <p class="lede">Type the room code from the TV, put your name in, and get ready to be wrong in front of your friends.</p>
+        <p class="how">Code from the TV <span>→</span> your name <span>→</span> slam the buzzer.</p>
       </div>
 
-      <div class="divider">or</div>
+      <div>
+        <form class="card join-card" onsubmit="event.preventDefault(); joinGame();">
+          <div class="h2">Join a game</div>
+          <div>
+            <label for="roomCode">Room code</label>
+            <input type="text" id="roomCode" placeholder="ABCD" maxlength="4" class="code-input" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
+          </div>
+          <div>
+            <label for="playerName">Your name</label>
+            <input type="text" id="playerName" placeholder="What should the TV call you?" maxlength="20" autocomplete="off">
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block">Join game</button>
+          <div id="join-error" class="field-error" role="alert"></div>
+        </form>
 
-      <div class="option-card">
-        <h2>Join a Game</h2>
-        <div class="join-form">
-          <div>
-            <label>Your Name</label>
-            <input type="text" id="playerName" placeholder="Enter your name" maxlength="20" autocomplete="off">
-          </div>
-          <div>
-            <label>Room Code</label>
-            <input type="text" id="roomCode" placeholder="XXXX" maxlength="4" class="code-input" autocomplete="off">
-          </div>
-          <button class="btn btn-gold btn-lg" onclick="joinGame()" style="width:100%; justify-content:center; margin-top:6px;">
-            Join Game
-          </button>
-          <div id="join-error" style="color:#ff6b6b; font-size:0.85rem; text-align:center; min-height:20px;"></div>
-        </div>
+        <a href="/host.html" class="host-link">Running it tonight? <b>Set up the board on your laptop</b></a>
       </div>
-    </div>
-  </div>
+    </section>
+
+    <footer class="landing-foot">
+      <span>Everyone needs to be on the same Wi-Fi.</span>
+      <span>Board on the TV · host on a laptop · buzzers on phones</span>
+    </footer>
+  </main>
 
   <script>
-    document.getElementById('roomCode').addEventListener('input', function() {
-      this.value = this.value.toUpperCase();
+    const codeEl = document.getElementById('roomCode');
+    const nameEl = document.getElementById('playerName');
+    const params = new URLSearchParams(location.search);
+    if (params.get('code')) { codeEl.value = params.get('code').toUpperCase().slice(0, 4); }
+
+    codeEl.addEventListener('input', function () {
+      this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (this.value.length === 4) nameEl.focus();
     });
 
-    document.getElementById('roomCode').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') joinGame();
-    });
-
-    document.getElementById('playerName').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') document.getElementById('roomCode').focus();
-    });
+    try { const last = localStorage.getItem('jv-name'); if (last) nameEl.value = last; } catch (e) {}
 
     function joinGame() {
-      const name = document.getElementById('playerName').value.trim();
-      const code = document.getElementById('roomCode').value.trim().toUpperCase();
+      const name = nameEl.value.trim();
+      const code = codeEl.value.trim().toUpperCase();
       const errEl = document.getElementById('join-error');
-
-      if (!name) { errEl.textContent = 'Please enter your name.'; return; }
-      if (code.length < 4) { errEl.textContent = 'Please enter the 4-character room code.'; return; }
-
+      if (code.length < 4) { errEl.textContent = 'The room code is 4 characters — check the TV.'; codeEl.focus(); return; }
+      if (!name) { errEl.textContent = 'Add a name so the board knows who buzzed.'; nameEl.focus(); return; }
       errEl.textContent = '';
-      // Just redirect — player.html will handle the actual socket join
+      try { localStorage.setItem('jv-name', name); } catch (e) {}
       window.location.href = `/player.html?code=${code}&name=${encodeURIComponent(name)}`;
     }
   </script>

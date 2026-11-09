@@ -43,34 +43,46 @@ There are four views:
 | Board Display | `/board.html`  | TV or projector     |
 | Player View   | `/player.html` | Each player's phone |
 
+| TV board | Phone buzzer |
+| --- | --- |
+| ![TV board](docs/screenshots/tv-board.png) | ![Phone buzzer](docs/screenshots/phone-buzzer.png) |
+| ![Host panel](docs/screenshots/host-judging.png) | ![Finale](docs/screenshots/tv-finale.png) |
+
 ## Running a Game
 
 1. Open `/host.html` on your device
-2. Build a board or load a preset, then click **Create Game**
-3. Open `/board.html` on the TV — enter the room code shown in the host panel
-4. Players open `/` on their phones and enter their name and the room code
-5. Click **Start Game** in the host panel
+2. Build a board or load a preset, then click **Open a room**
+3. Click **Open TV display** and put that window on the TV. It shows a QR code and the room code
+4. Players scan the QR code (or open `/` on their phones) and enter their name and the room code
+5. Click **Start game** in the host panel
+
+The host sidebar always shows the one next step for the current phase (Build → Lobby → Play → Final → Wrap).
+While a clue is open, the host can judge with the keyboard: **C** correct, **W** wrong, **A** show the answer on the TV, **Esc** close the clue.
+
+The TV figures out your machine's LAN address for the join link and QR code. Fonts and the QR library are served locally, so the game works on a network with no internet access.
 
 ## Board Builder
 
 - Six categories, five clues each ($200 - $1000)
-- Mark any clue as **Daily Double**
+- Tap **DD** on any clue to make it the Daily Double (only the host sees it)
 - Save and reload boards using local storage
 - Four built-in presets: Easy / Family Night, Medium / General, Hard / Expert, College Night
 
 ## Daily Double
 
-When a Daily Double clue is selected, the host panel shows a wager form. The host selects which player found it and enters their wager, then clicks **Reveal Clue**. Scoring is based on the wager rather than the face value.
+When a Daily Double clue is selected, the TV announces it and the host panel shows a wager form. The player who answered the last clue correctly is preselected. The host enters a wager (quick picks: minimum, half, or a true Daily Double), then clicks **Show clue on TV**. Scoring is based on the wager rather than the face value.
 
 ## Final Jeopardy
 
-1. Click **Final Jeopardy** in the host panel sidebar
-2. Enter the category, clue, and correct answer
-3. Click **Start Final Jeopardy** — players see a wager screen on their phones
-4. Once wagers are in, click **Reveal Final Clue**
-5. Players see the clue and write their answers
-6. The host judges each player correct or wrong using the judging panel
-7. Click **End Game** when done
+1. When the board is cleared, click **Start Final Jeopardy** (or **Skip to Final Jeopardy** in the sidebar)
+2. Check the category, clue, and correct answer (prefilled from the board builder)
+3. Click **Start Final Jeopardy**. Players see a wager screen on their phones
+4. Once wagers are in, click **Reveal the clue**
+5. Players type their answers on their phones; only the host sees them
+6. The host marks each answer correct or wrong
+7. Click **Show the winner** to put the podium, score chart, and superlatives on the TV
+
+At the end, **Copy results for the group chat** on the host panel copies the standings and superlatives as text.
 
 ## Scoring
 
@@ -80,4 +92,4 @@ When a Daily Double clue is selected, the host panel shows a wager form. The hos
 
 ## Resetting
 
-Click **Reset Game** in the host panel to reset all scores and re-open all clues without disconnecting players.
+Click **Reset scores & board…** in the host sidebar (or **Play again** at the end) to reset all scores and re-open all clues without disconnecting players.

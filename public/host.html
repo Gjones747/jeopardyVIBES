@@ -3,314 +3,391 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jeopardy! - Host</title>
+  <meta name="theme-color" content="#14120f">
+  <title>jeopardyVIBES · Host</title>
   <link rel="stylesheet" href="/style.css">
   <style>
+    /* ---------- Shell ---------- */
+    .hd {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; gap: 20px;
+      padding: 12px 24px; background: var(--ink); border-bottom: 1px solid var(--line);
+    }
+    .hd .brand { display: flex; align-items: center; gap: 10px; }
+    .hd .spacer { flex: 1; }
+    .stepper { display: flex; align-items: center; gap: 4px; list-style: none; }
+    .stepper li { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--faint); padding: 5px 10px; border-radius: 99px; }
+    .stepper li .d { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 0.68rem; }
+    .stepper li.done { color: var(--paper-2); }
+    .stepper li.done .d { background: var(--paper-2); color: var(--ink); border-color: var(--paper-2); }
+    .stepper li.now { color: var(--hi-ink); background: var(--hi); }
+    .stepper li.now .d { border-color: var(--hi-ink); }
+    .stepper .sep { width: 14px; height: 1px; background: var(--line); }
+
+    .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 65px); }
+    .side { border-right: 1px solid var(--line); padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+    .main { padding: 24px 28px 60px; min-width: 0; }
+
+    .next { padding: 2px 0 18px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+    .next .h2 { font-size: 1.5rem !important; letter-spacing: -0.03em; }
+    .next .h2 { font-size: 1.25rem; }
+    .next p { color: var(--paper-2); font-size: 0.92rem; }
+    .next .btns { display: flex; flex-direction: column; gap: 8px; }
+
+    .sec-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .player-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .player-row:last-child { border-bottom: none; }
+    .player-row .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .player-row .sc { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .adj { display: none; gap: 4px; }
+    .adjusting .adj { display: flex; }
+    .player-row { grid-template-columns: 1fr auto; }
+    .adjusting .player-row { grid-template-columns: 1fr auto auto; }
+    .adj .btn { width: 30px; padding: 0; height: 30px; font-size: 1rem; }
+
+    .timers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .danger-zone { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+
+    /* ---------- Tabs ---------- */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .tab { background: none; border: none; color: var(--muted); font: 600 0.95rem var(--ui); padding: 10px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab.active { color: var(--paper); border-bottom-color: var(--hi); }
+    .tab:disabled { opacity: 0.4; cursor: not-allowed; }
     .section { display: none; }
     .section.active { display: block; }
-    .setup-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
-    .setup-title { font-family: 'Oswald', sans-serif; font-size: 1.4rem; color: var(--bright-gold); }
-    .q-count-badge {
-      font-size: 0.75rem; background: rgba(74,222,128,0.2); color: #4ade80;
-      padding: 3px 8px; border-radius: 20px; border: 1px solid rgba(74,222,128,0.4);
-    }
-    .section-heading {
-      font-family: 'Oswald', sans-serif; font-size: 0.8rem; color: var(--gold);
-      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px;
-    }
-    .player-controls { display: flex; gap: 6px; align-items: center; }
-    .host-page .setup-grid .category-row { display: contents; }
-    .warn { color: #fbbf24; font-size: 0.85rem; }
-    .game-over-notice {
-      background: rgba(255,215,0,0.1); border: 2px solid var(--gold);
-      border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 16px;
-    }
-    .dd-wager-panel {
-      background: rgba(255,165,0,0.12); border: 1px solid rgba(255,165,0,0.4);
-      border-radius: 8px; padding: 14px 16px; margin-bottom: 14px;
-    }
-    .dd-label {
-      font-family: 'Oswald', sans-serif; font-size: 1rem; color: #fbbf24;
-      letter-spacing: 0.08em; margin-bottom: 10px;
-    }
-    .dd-fields { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-    .dd-fields label { font-size: 0.78rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 4px; }
-    .dd-fields select, .dd-fields input[type="number"] {
-      background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2);
-      color: white; border-radius: 6px; padding: 7px 10px; font-size: 0.9rem;
-    }
-    .fj-host-panel {
-      background: rgba(0,50,100,0.3); border: 1px solid rgba(100,150,255,0.3);
-      border-radius: 10px; padding: 16px; margin-bottom: 16px;
-    }
-    .fj-host-panel h3 { font-family: 'Oswald', sans-serif; color: #93c5fd; margin-bottom: 12px; font-size: 1.1rem; }
-    .fj-judge-list { display: flex; flex-direction: column; gap: 8px; }
-    .fj-judge-item {
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 14px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .fj-judge-item.judged-correct { border-color: rgba(74,222,128,0.5); background: rgba(74,222,128,0.08); }
-    .fj-judge-item.judged-wrong { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.08); }
+
+    /* ---------- Builder ---------- */
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+    .toolbar select { width: auto; height: 34px; padding: 0 32px 0 12px; font-size: 0.85rem; }
+    .toolbar .progress { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.85rem; }
+    .progress-bar { width: 120px; height: 6px; background: var(--ink-3); border-radius: 99px; overflow: hidden; }
+    .progress-bar span { display: block; height: 100%; background: var(--hi); border-radius: 99px; transition: width 0.2s; }
+
+    .setup-grid { display: grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+    .cat-head input { font-family: var(--display); font-weight: 800; font-size: 1rem; background: transparent; border: none; border-bottom: 2px solid var(--line); border-radius: 0; padding: 8px 2px; }
+    .cat-head input:focus { border-bottom-color: var(--hi); }
+    .q-cell { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.12s; }
+    .q-cell:focus-within { border-color: var(--paper-2); }
+    .q-cell.filled .q-val { color: var(--paper); }
+    .q-cell.dd { border-color: var(--hi); }
+    .q-top { display: flex; align-items: center; justify-content: space-between; }
+    .q-val { font-family: var(--display); font-weight: 800; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .q-cell textarea, .q-cell input[type="text"] { font-size: 0.85rem; padding: 4px 6px; margin: 0 -6px; width: calc(100% + 12px); background: transparent; border-color: transparent; }
+    .q-cell textarea:hover { border-color: var(--line); }
+    .q-cell textarea:focus { background: var(--ink); border-color: var(--hi); }
+    .q-cell textarea { resize: vertical; line-height: 1.3; field-sizing: content; min-height: 0; }
+    .q-cell textarea.q-clue-input { min-height: 3.2em; }
+    .q-cell textarea.q-answer-input { min-height: 2.1em; color: var(--paper-2); }
+    .dd-toggle { position: relative; display: inline-flex; align-items: center; font-size: 0.68rem; font-weight: 700; color: var(--faint); cursor: pointer; margin: 0; user-select: none; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--line); opacity: 0; transition: opacity 0.12s; }
+    .dd-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .dd-toggle { opacity: 0.45 !important; }
+    .q-cell:hover .dd-toggle, .q-cell:focus-within .dd-toggle, .dd-toggle:focus-within, .q-cell.dd .dd-toggle { opacity: 1 !important; }
+    .q-cell.dd .dd-toggle { opacity: 1; background: var(--hi); border-color: var(--hi); color: var(--hi-ink); }
+    .builder-note { color: var(--muted); font-size: 0.82rem; margin: -6px 0 12px; }
+
+    .fj-setup { margin-top: 18px; display: grid; grid-template-columns: 1fr 2fr 1.4fr; gap: 12px; align-items: end; }
+    .card-title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+
+    .saved-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .saved-item:last-child { border-bottom: none; }
+
+    /* ---------- Game console ---------- */
+    .console { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px; margin-bottom: 20px; animation: rise 0.2s ease-out; }
+    #active-q-panel { background: none; border: none; border-radius: 0; padding: 4px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 22px; }
+    #active-q-panel .clue { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; max-width: 24ch; margin: 6px 0 18px; }
+    .btn-chunky { height: 64px; font-size: 1.15rem; font-weight: 700; border-radius: 14px; transform: translateY(-3px); transition: transform 0.05s, box-shadow 0.05s; }
+    .btn-chunky.btn-good { box-shadow: 0 5px 0 #2e9e63; }
+    .btn-chunky.btn-bad { box-shadow: 0 5px 0 #b8433b; }
+    .btn-chunky:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
+    .btn-chunky:disabled { transform: none; box-shadow: none; }
+    kbd { font-family: var(--ui); font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 5px; border: 1px solid currentColor; opacity: 0.6; margin-left: 4px; }
+    .shortcuts { margin-top: 12px; color: var(--faint); font-size: 0.8rem; }
+    .console-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .console .clue { font-family: var(--display); font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 14px; max-width: 40ch; }
+    .answer-key { display: flex; align-items: center; gap: 10px; background: var(--ink); border: 1px dashed var(--line); border-radius: var(--r); padding: 10px 14px; margin-bottom: 16px; }
+    .answer-key .k { font-weight: 600; }
+    .host-timer { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .host-timer .track { flex: 1; height: 6px; background: var(--ink-3); border-radius: 99px; overflow: hidden; }
+    .host-timer .fill { height: 100%; background: var(--paper); border-radius: 99px; transition: width 0.95s linear, background 0.2s; }
+    .host-timer .fill.mid { background: var(--warn); }
+    .host-timer .fill.low { background: var(--bad); }
+    .host-timer .n { font-family: var(--display); font-weight: 800; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+    .buzz-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; min-height: 32px; }
+    .judge { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px; }
+    .judge .btn-lg { font-size: 1.1rem; }
+    .judge-who { font-size: 0.9rem; color: var(--paper-2); margin-bottom: 8px; }
+    .judge-who b { color: var(--paper); }
+
+    .dd-step { display: grid; grid-template-columns: 1fr 140px auto; gap: 10px; align-items: end; padding-top: 16px; border-top: 1px solid var(--line); margin-bottom: 4px; }
+    .dd-step .dd-head { grid-column: 1 / -1; font-weight: 600; color: var(--hi); }
+    .dd-quick { grid-column: 1 / -1; display: flex; gap: 6px; }
+
+    /* Mini board */
+    .mini-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .mini-cat { font-family: var(--display); font-weight: 800; font-size: 0.85rem; line-height: 1.1; padding: 0 2px 8px; border-bottom: 2px solid var(--hi); display: flex; align-items: flex-end; min-height: 42px; }
+    .mini-cell { position: relative; background: var(--paper); color: var(--ink); border: none; border-radius: var(--r-sm); height: 50px; font-family: var(--display); font-weight: 800; font-size: 1.3rem; font-variant-numeric: tabular-nums; cursor: pointer; transition: transform 0.08s, background 0.12s; }
+    .mini-cell:hover { background: var(--hi); transform: translateY(-1px); }
+    .mini-cell.answered { background: transparent; color: var(--faint); border: 1px dashed var(--line); cursor: default; font-size: 1rem; text-decoration: line-through; }
+    .mini-cell.answered:hover { transform: none; }
+    .mini-cell .dd-star { position: absolute; top: 4px; right: 5px; font-family: var(--ui); font-size: 0.6rem; font-weight: 700; background: var(--ink); color: var(--hi); padding: 1px 4px; border-radius: 4px; }
+    .mini-cell:disabled { cursor: not-allowed; }
+    .mini-cell:disabled:hover { background: var(--paper); transform: none; }
+    .mini-board.busy .mini-cell:not(.answered) { opacity: 0.85; }
+    .board-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+
+    /* Final round + recap */
+    .fj-panel .fields { display: grid; grid-template-columns: 1fr 2fr 1.4fr; gap: 12px; margin-bottom: 14px; }
+    .wager-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 16px; }
+    .fj-judge-item { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .fj-judge-item:last-child { border-bottom: none; }
+    .fj-judge-item.judged-correct .fj-judge-name::after { content: ' · correct'; color: var(--good); font-weight: 500; }
+    .fj-judge-item.judged-wrong .fj-judge-name::after { content: ' · wrong'; color: var(--bad); font-weight: 500; }
     .fj-judge-name { font-weight: 600; }
-    .fj-judge-wager { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+    .fj-said { font-family: var(--display); font-weight: 700; font-size: 1.15rem; color: var(--muted); margin: 2px 0; }
+    .fj-said.in { color: var(--paper); }
     .fj-judge-btns { display: flex; gap: 6px; }
-    .timer-settings {
-      display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px;
+
+    .recap table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .recap th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; padding: 0 8px 8px; }
+    .recap td { padding: 12px 8px; border-top: 1px solid var(--line); }
+    .recap td.r, .recap th.r { text-align: right; }
+    .recap .first td { font-weight: 700; }
+    .host-awards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 22px; }
+    .host-awards .a { border-top: 2px solid var(--hi); padding-top: 10px; }
+    .host-awards .t { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
+    .host-awards .w { font-family: var(--display); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; }
+    .host-awards .d { color: var(--paper-2); font-size: 0.85rem; }
+    .recap .first td:first-child::after { content: ' — winner'; color: var(--hi); font-weight: 600; }
+
+    .empty { text-align: center; padding: 28px; color: var(--muted); }
+
+    @media (max-width: 1100px) {
+      .stepper { display: none; }
     }
-    .timer-settings label { font-size: 0.78rem; color: rgba(255,255,255,0.6); display: block; margin-bottom: 4px; }
-    .timer-settings input[type="number"] {
-      width: 70px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2);
-      color: white; border-radius: 6px; padding: 6px 8px; font-size: 0.9rem;
+    @media (max-width: 860px) {
+      .hd { padding: 10px 16px; gap: 10px; }
+      .hd .tv-btn { display: none; }
+      .layout { grid-template-columns: 1fr; }
+      .side { border-right: none; border-bottom: 1px solid var(--line); padding: 16px; }
+      .danger-zone { margin-top: 0; }
+      .main { padding: 16px; }
+      .setup-grid { grid-template-columns: repeat(6, 200px); }
+      .fj-setup, .fj-panel .fields, .dd-step { grid-template-columns: 1fr; }
+      .toolbar .progress { margin-left: 0; width: 100%; }
+      .judge { grid-template-columns: 1fr 1fr; }
+      .host-awards { grid-template-columns: 1fr; }
+      .mini-board { gap: 4px; }
+      .mini-cell { height: 44px; font-size: 0.95rem; }
+      .mini-cat { font-size: 0.7rem; }
     }
-    .saved-board-item {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
-    }
-    .saved-name { flex: 1; font-weight: 600; }
-    .saved-meta { font-size: 0.78rem; color: rgba(255,255,255,0.45); }
   </style>
 </head>
 <body>
-  <div class="host-page">
-    <div class="host-header">
-      <a href="/" class="title" style="text-decoration:none; cursor:pointer;" title="Back to main menu">JEOPARDY! <span style="font-size:1rem; color:rgba(255,255,255,0.5);">Host Panel</span></a>
-      <div id="room-code-display" class="hidden">
-        <div class="room-code-badge">
-          <span class="label">Room Code</span>
-          <span class="code" id="room-code-text">----</span>
-        </div>
-      </div>
+  <header class="hd">
+    <div class="brand">
+      <a class="wm" href="/" title="Back to start">jeopardy<b>VIBES</b></a>
+      <span class="chip">Host</span>
     </div>
+    <ol class="stepper" id="stepper">
+      <li data-step="setup"><span class="d">1</span>Build</li><span class="sep"></span>
+      <li data-step="lobby"><span class="d">2</span>Lobby</li><span class="sep"></span>
+      <li data-step="play"><span class="d">3</span>Play</li><span class="sep"></span>
+      <li data-step="final"><span class="d">4</span>Final</li><span class="sep"></span>
+      <li data-step="ended"><span class="d">5</span>Wrap</li>
+    </ol>
+    <div class="spacer"></div>
+    <button class="btn btn-sm tv-btn hidden" onclick="openBoardUrl()" id="board-btn">Open TV display ↗</button>
+    <div id="room-code-display" class="hidden">
+      <div class="code-pill"><span class="eyebrow">Room</span><span class="code" id="room-code-text">----</span></div>
+    </div>
+  </header>
 
-    <div class="host-layout">
-
-      <!-- ==================== SIDEBAR ==================== -->
-      <div class="host-sidebar">
-        <nav class="host-nav">
-          <button class="nav-btn active" id="nav-setup" onclick="showSection('setup')">Board Setup</button>
-          <button class="nav-btn" id="nav-game" onclick="showSection('game')" disabled>Game Controls</button>
-        </nav>
-
-        <div class="sidebar-section">
-          <div class="section-heading">Actions</div>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <button class="btn btn-gold btn-sm" onclick="createGame()" id="create-btn">Create Game</button>
-            <button class="btn btn-sm" onclick="openBoardUrl()" id="board-btn" disabled>Open Board Display</button>
-            <button class="btn btn-sm" onclick="startGame()" id="start-btn" disabled>Start Game</button>
-            <button class="btn btn-sm hidden" style="background:rgba(100,150,255,0.2); border-color:rgba(100,150,255,0.4); color:#93c5fd;"
-              onclick="openFinalJeopardyModal()" id="fj-btn">Final Jeopardy</button>
-            <button class="btn btn-sm hidden" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3); color:#f87171;"
-              onclick="resetGame()" id="reset-btn">Reset Game</button>
-          </div>
-        </div>
-
-        <div class="sidebar-section" id="players-panel" style="display:none;">
-          <div class="section-heading">Players <span id="player-count" class="q-count-badge">0</span></div>
-          <div id="player-list"></div>
-        </div>
-
-        <div class="sidebar-section">
-          <div class="section-heading">Timer Settings</div>
-          <div class="timer-settings">
-            <div>
-              <label>Buzz Time (s)</label>
-              <input type="number" id="buzz-time-limit" value="30" min="5" max="120">
-            </div>
-            <div>
-              <label>Answer Time (s)</label>
-              <input type="number" id="answer-time-limit" value="10" min="5" max="60">
-            </div>
-          </div>
-        </div>
+  <div class="layout">
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="side">
+      <div class="next" id="next-card">
+        <div class="eyebrow" id="next-eyebrow">Step 1 of 5</div>
+        <div class="h2" id="next-title">Build your board</div>
+        <p id="next-text">Load a preset or write your own clues, then open a room.</p>
+        <div class="btns" id="next-btns"></div>
       </div>
 
-      <!-- ==================== MAIN ==================== -->
-      <div class="host-main">
+      <section id="players-panel" class="hidden">
+        <div class="sec-title"><span class="eyebrow">Players · <span class="num" id="player-count">0</span></span><button class="btn btn-sm btn-ghost" id="adjust-toggle" onclick="toggleAdjust()">Adjust scores</button></div>
+        <div id="player-list"></div>
+      </section>
 
-        <!-- ===== SETUP SECTION ===== -->
-        <div class="section active" id="section-setup">
-          <div class="setup-toolbar">
-            <div class="setup-toolbar-title">Board Builder</div>
-            <select id="preset-select" onchange="loadPreset(this.value)" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.2); color:white; border-radius:6px; padding:6px 10px; font-size:0.85rem; cursor:pointer;">
-              <option value="">Load Preset...</option>
-              <option value="easy">Easy / Family Night</option>
-              <option value="medium">Medium / General</option>
-              <option value="hard">Hard / Expert</option>
-              <option value="college">College Night</option>
-            </select>
-            <button class="btn btn-sm" onclick="showSaved()">Saved Boards</button>
-            <button class="btn btn-sm" onclick="saveBoard()">Save Board</button>
-            <button class="btn btn-sm btn-gray" onclick="clearBoard()">Clear</button>
+      <section id="timers-panel">
+        <div class="sec-title"><span class="eyebrow">Timers</span></div>
+        <div class="timers">
+          <div><label for="buzz-time-limit">Buzz window (s)</label><input type="number" id="buzz-time-limit" value="30" min="5" max="120"></div>
+          <div><label for="answer-time-limit">Answer time (s)</label><input type="number" id="answer-time-limit" value="10" min="5" max="60"></div>
+        </div>
+      </section>
+
+      <section class="danger-zone hidden" id="danger-zone">
+        <span class="eyebrow">Room</span>
+        <button class="btn btn-sm" onclick="openFinalJeopardyModal()" id="fj-btn">Skip to Final Jeopardy</button>
+        <button class="btn btn-sm btn-danger" onclick="confirmReset()" id="reset-btn">Reset scores &amp; board…</button>
+      </section>
+    </aside>
+
+    <!-- ==================== MAIN ==================== -->
+    <main class="main">
+      <nav class="tabs" id="tabs">
+        <button class="tab active" id="nav-setup" onclick="showSection('setup')">Board builder</button>
+        <button class="tab" id="nav-game" onclick="showSection('game')" disabled>Game</button>
+      </nav>
+
+      <!-- ===== SETUP ===== -->
+      <section class="section active" id="section-setup">
+        <div class="toolbar">
+          <button class="btn btn-sm btn-primary hidden" id="back-to-game" onclick="showSection('game')">← Back to game</button>
+          <select id="preset-select" onchange="loadPreset(this.value)" aria-label="Load a preset board">
+            <option value="">Load a preset…</option>
+            <option value="easy">Easy · Family night</option>
+            <option value="medium">Medium · General</option>
+            <option value="hard">Hard · Expert</option>
+            <option value="college">College night</option>
+          </select>
+          <button class="btn btn-sm" onclick="showSaved()">Saved boards</button>
+          <button class="btn btn-sm" onclick="saveBoard()">Save</button>
+          <button class="btn btn-sm btn-danger" onclick="clearBoard()">Clear all</button>
+          <div class="progress"><span id="fill-count">0 of 30 clues</span><div class="progress-bar"><span id="fill-bar" style="width:0%"></span></div></div>
+        </div>
+
+        <div id="saved-panel" class="card hidden" style="margin-bottom:16px;">
+          <div class="sec-title"><span class="h2" style="font-size:1.1rem;">Saved boards</span><button class="btn btn-sm btn-ghost" onclick="hideSaved()">Close</button></div>
+          <div id="saved-list"></div>
+        </div>
+
+        <p class="builder-note">Tap <b>DD</b> on any clue to hide the Daily Double there. Only you can see it.</p>
+        <div class="setup-grid" id="setup-grid"></div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-title"><span class="h2" style="font-size:1.1rem;">Final Jeopardy</span><span class="chip">Optional</span></div>
+          <div class="fj-setup">
+            <div><label for="fj-setup-cat">Category</label><input type="text" id="fj-setup-cat" placeholder="World Capitals" maxlength="60"></div>
+            <div><label for="fj-setup-clue">Clue</label><textarea id="fj-setup-clue" placeholder="The clue everyone wagers on" maxlength="300" rows="1" style="field-sizing:content; resize:vertical;"></textarea></div>
+            <div><label for="fj-setup-answer">Answer</label><input type="text" id="fj-setup-answer" placeholder="What is …?" maxlength="200"></div>
           </div>
+        </div>
+      </section>
 
-          <!-- Saved boards panel -->
-          <div id="saved-panel" class="hidden" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:16px; margin-bottom:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <div class="section-heading" style="margin:0;">Saved Boards</div>
-              <button class="btn btn-sm" onclick="hideSaved()">Close</button>
+      <!-- ===== GAME ===== -->
+      <section class="section" id="section-game">
+
+        <!-- Clue console -->
+        <div id="active-q-panel" class="console hidden">
+          <div class="console-meta eyebrow" id="aq-meta">
+            <span id="aq-cat"></span><span>·</span><span class="num" id="aq-val"></span>
+            <span class="hidden" id="aq-dd" style="color:var(--hi);">· Daily Double</span>
+          </div>
+          <div class="clue" id="aq-clue"></div>
+          <div class="answer-key"><span class="eyebrow">Answer · only you see this</span><span class="k" id="aq-answer"></span></div>
+
+          <!-- Daily double: step 1 -->
+          <div id="dd-wager-panel" class="dd-step hidden">
+            <div class="dd-head">Daily Double — set the wager before the clue goes up</div>
+            <div><label for="dd-player-select">Who picked it?</label><select id="dd-player-select"></select></div>
+            <div><label for="dd-wager-input">Wager · up to <span id="dd-max">$1,000</span></label><input type="number" id="dd-wager-input" min="5" value="200"></div>
+            <button class="btn btn-primary" onclick="revealDD()">Show clue on TV</button>
+            <div class="dd-quick">
+              <button class="btn btn-sm" onclick="setDDWager(0)">Minimum</button>
+              <button class="btn btn-sm" onclick="setDDWager(0.5)">Half</button>
+              <button class="btn btn-sm" onclick="setDDWager(1)">True Daily Double</button>
             </div>
-            <div id="saved-list"></div>
           </div>
 
-          <div class="setup-grid" id="setup-grid">
-            <!-- JS rendered -->
-          </div>
-
-          <!-- Final Jeopardy setup (built into the board builder) -->
-          <div class="fj-setup-card">
-            <div class="fj-setup-header">
-              <div class="fj-setup-title">Final Jeopardy</div>
-              <div class="fj-setup-badge">Optional</div>
+          <div id="judge-area">
+            <div id="host-timer" class="host-timer hidden">
+              <span class="eyebrow" id="host-timer-label">Buzz</span>
+              <div class="track"><div class="fill" id="host-timer-ring" style="width:100%"></div></div>
+              <span class="n" id="host-timer-num">30</span>
             </div>
-            <div class="fj-setup-fields">
-              <div>
-                <label>Category</label>
-                <input type="text" id="fj-setup-cat" placeholder="e.g. American History" maxlength="60">
-              </div>
-              <div>
-                <label>Clue</label>
-                <textarea id="fj-setup-clue" placeholder="Enter the Final Jeopardy clue..." style="resize:vertical; min-height:60px;"></textarea>
-              </div>
-              <div>
-                <label>Correct Answer</label>
-                <input type="text" id="fj-setup-answer" placeholder="e.g. What is the Declaration of Independence?" maxlength="200">
-              </div>
+            <div class="buzz-row" id="buzz-panel"><span class="eyebrow">Buzz order</span><span id="buzz-order-list" class="muted small">Nobody yet</span></div>
+            <div class="judge-who" id="judge-who">Waiting for a buzz…</div>
+            <div class="judge">
+              <button class="btn btn-good btn-chunky" id="btn-correct" onclick="answerResult(true)" disabled>Correct <kbd>C</kbd></button>
+              <button class="btn btn-bad btn-chunky" id="btn-wrong" onclick="answerResult(false)" disabled>Wrong <kbd>W</kbd></button>
+              <button class="btn btn-lg" style="height:64px;" onclick="revealAnswer()">Show answer <kbd>A</kbd></button>
+              <button class="btn btn-lg btn-ghost" style="height:64px;" onclick="dismissQuestion()">Close <kbd>Esc</kbd></button>
             </div>
           </div>
         </div>
 
-        <!-- ===== GAME SECTION ===== -->
-        <div class="section" id="section-game">
-
-          <!-- Daily Double wager panel -->
-          <div id="dd-wager-panel" class="dd-wager-panel hidden">
-            <div class="dd-label">Daily Double — Set Wager</div>
-            <div class="dd-fields">
-              <div style="flex:1; min-width:140px;">
-                <label>Who found it?</label>
-                <select id="dd-player-select"></select>
-              </div>
-              <div style="width:110px;">
-                <label>Wager ($)</label>
-                <input type="number" id="dd-wager-input" min="5" value="200">
-              </div>
-              <button class="btn btn-gold" onclick="revealDD()">Reveal Clue</button>
-            </div>
+        <!-- Final round setup -->
+        <div id="fj-launch-panel" class="console fj-panel hidden">
+          <div class="card-title"><span class="h2">Final Jeopardy</span></div>
+          <div class="fields">
+            <div><label for="fj-cat-input">Category</label><input type="text" id="fj-cat-input" maxlength="60"></div>
+            <div><label for="fj-clue-input">Clue</label><input type="text" id="fj-clue-input" maxlength="300"></div>
+            <div><label for="fj-answer-input">Answer</label><input type="text" id="fj-answer-input" maxlength="200"></div>
           </div>
-
-          <!-- Active question panel -->
-          <div id="active-q-panel" class="active-q-panel hidden">
-            <div style="display:flex; align-items:flex-start; gap:16px;">
-              <div style="flex:1;">
-                <div class="aq-meta" id="aq-cat"></div>
-                <div class="aq-clue-text" id="aq-clue"></div>
-                <div class="aq-answer-row">Answer: <span id="aq-answer"></span></div>
-                <div class="aq-action-row">
-                  <button class="btn btn-green" onclick="answerResult(true)">Correct</button>
-                  <button class="btn btn-red" onclick="answerResult(false)">Wrong</button>
-                  <button class="btn btn-sm btn-gray" onclick="revealAnswer()">Reveal Answer</button>
-                  <button class="btn btn-sm btn-gray" onclick="dismissQuestion()">Dismiss</button>
-                </div>
-              </div>
-              <!-- Host timer -->
-              <div id="host-timer" class="hidden" style="flex-shrink:0; text-align:center;">
-                <div style="position:relative; width:72px; height:72px;">
-                  <svg viewBox="0 0 72 72" width="72" height="72" style="transform:rotate(-90deg);">
-                    <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"/>
-                    <circle id="host-timer-ring" cx="36" cy="36" r="30" fill="none"
-                      stroke="#4ade80" stroke-width="5" stroke-linecap="round"
-                      stroke-dasharray="188.5" stroke-dashoffset="0"
-                      style="transition:stroke-dashoffset 0.9s linear, stroke 0.3s;"/>
-                  </svg>
-                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;">
-                    <div id="host-timer-num" style="font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;color:white;line-height:1;">30</div>
-                    <div id="host-timer-label" style="font-size:0.5rem;letter-spacing:0.1em;color:rgba(255,255,255,0.6);text-transform:uppercase;">BUZZ</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Buzz order display -->
-          <div id="buzz-panel" class="buzz-order-panel hidden">
-            <div class="section-heading">Buzz Order</div>
-            <div id="buzz-order-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-          </div>
-
-          <!-- Final Jeopardy inline launch panel (replaces old modal) -->
-          <div id="fj-launch-panel" class="fj-launch-panel hidden">
-            <h3>Final Jeopardy</h3>
-            <div class="fj-launch-fields">
-              <div>
-                <label>Category</label>
-                <input type="text" id="fj-cat-input" placeholder="e.g. American History" maxlength="60">
-              </div>
-              <div>
-                <label>Clue</label>
-                <textarea id="fj-clue-input" placeholder="Enter the Final Jeopardy clue..." style="resize:vertical; min-height:60px;"></textarea>
-              </div>
-              <div>
-                <label>Correct Answer</label>
-                <input type="text" id="fj-answer-input" placeholder="e.g. What is the Declaration?" maxlength="200">
-              </div>
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button class="btn btn-gold" onclick="startFinalJeopardy()">Launch Final Jeopardy</button>
-              <button class="btn btn-sm btn-gray" onclick="hideFJLaunch()">Cancel</button>
-            </div>
-          </div>
-
-          <!-- Final Jeopardy host judging panel -->
-          <div id="fj-host-panel" class="fj-host-panel hidden">
-            <h3>Final Jeopardy</h3>
-            <div id="fj-phase-wager">
-              <div style="margin-bottom:12px; color:rgba(255,255,255,0.7); font-size:0.9rem;">
-                Wagers received: <strong id="fj-wager-count">0</strong> / <strong id="fj-total-players">0</strong>
-              </div>
-              <button class="btn btn-gold" onclick="revealFinalClue()">Reveal Final Clue</button>
-            </div>
-            <div id="fj-phase-judge" class="hidden" style="margin-top:12px;">
-              <div style="font-size:0.82rem; color:rgba(255,255,255,0.5); margin-bottom:10px;">Judge each player's answer:</div>
-              <div id="fj-judge-list" class="fj-judge-list"></div>
-              <button class="btn btn-sm btn-red" style="margin-top:14px;" onclick="endGame()">End Game</button>
-            </div>
-          </div>
-
-          <!-- Game over -->
-          <div id="game-over-panel" class="hidden">
-            <div class="game-over-card">
-              <div class="go-title">Game Over!</div>
-              <div class="go-sub">Thanks for playing!</div>
-              <button class="btn btn-gold btn-lg" onclick="resetGame()">Play Again</button>
-            </div>
-          </div>
-
-          <!-- Mini board -->
-          <div class="mini-board-section">
-            <div class="section-heading">Board</div>
-            <div class="mini-board" id="mini-board"></div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" onclick="startFinalJeopardy()">Start Final Jeopardy</button>
+            <button class="btn btn-ghost" onclick="hideFJLaunch()">Not yet</button>
           </div>
         </div>
 
+        <!-- Final round running -->
+        <div id="fj-host-panel" class="console fj-panel hidden">
+          <div class="console-meta"><span class="chip chip-hi">Final Jeopardy</span><span class="chip" id="fj-cat-chip"></span></div>
+          <div id="fj-phase-wager">
+            <div class="h2">Wagers: <span class="num" id="fj-wager-count">0</span> of <span class="num" id="fj-total-players">0</span> locked</div>
+            <div class="wager-chips" id="fj-wager-chips"></div>
+            <button class="btn btn-primary" onclick="revealFinalClue()">Reveal the clue</button>
+          </div>
+          <div id="fj-phase-judge" class="hidden">
+            <div class="clue" id="fj-clue-echo"></div>
+            <div class="answer-key"><span class="eyebrow">Answer</span><span class="k" id="fj-answer-echo"></span></div>
+            <div class="eyebrow" style="margin-bottom:4px;">Judge each typed answer</div>
+            <div id="fj-judge-list"></div>
+          </div>
+        </div>
+
+        <!-- Recap -->
+        <div id="game-over-panel" class="console recap hidden">
+          <div class="card-title" style="justify-content:space-between;">
+            <span class="h2">Final standings</span>
+            <button class="btn btn-sm" onclick="copyResults()" id="copy-btn">Copy results for the group chat</button>
+          </div>
+          <table>
+            <thead><tr><th>Player</th><th class="r">Buzzes</th><th class="r">Right</th><th class="r">Wrong</th><th class="r">Score</th></tr></thead>
+            <tbody id="recap-body"></tbody>
+          </table>
+          <div class="host-awards" id="host-awards"></div>
+        </div>
+
+        <!-- Board -->
+        <div class="mini-board-section" id="mini-board-section">
+          <div class="board-head">
+            <span class="eyebrow" id="board-hint">Click a value to put that clue on the TV</span>
+            <span style="display:flex; align-items:center; gap:12px;">
+              <span class="muted small num" id="board-left"></span>
+              <button class="btn btn-sm btn-ghost" onclick="showSection('setup')">Edit board</button>
+            </span>
+          </div>
+          <div class="mini-board" id="mini-board"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Save dialog -->
+  <div id="save-dialog" class="dialog-scrim hidden">
+    <div class="dialog" role="dialog" aria-labelledby="save-title">
+      <div class="h2" id="save-title">Save this board</div>
+      <div><label for="save-board-name">Name</label><input type="text" id="save-board-name" placeholder="Game night #3" maxlength="60"></div>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" onclick="closeSaveDialog()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmSaveBoard()">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- Save board dialog (replaces browser prompt) -->
-  <div id="save-dialog" class="save-dialog hidden">
-    <div class="save-dialog-box">
-      <h3>Save Board</h3>
-      <label>Board Name</label>
-      <input type="text" id="save-board-name" placeholder="e.g. Game Night #3" maxlength="60" style="margin-top:4px;">
-      <div class="save-dialog-actions">
-        <button class="btn btn-sm btn-gray" onclick="closeSaveDialog()">Cancel</button>
-        <button class="btn btn-gold" onclick="confirmSaveBoard()">Save</button>
-      </div>
-    </div>
-  </div>
-
+  <script src="/presets.js"></script>
+  <script src="/awards.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
@@ -318,480 +395,256 @@
     const VALUES = [200, 400, 600, 800, 1000];
 
     let gameCode = null;
-    let gameState = 'lobby';
+    let gameState = 'setup';   // setup | lobby | playing | final-wager | final-judge | ended
     let currentPlayers = [];
     let activeQuestion = null;
+    let ddRevealed = false;
     let fjData = null;
     let fjWagerCount = 0;
-    let fjPlayers = [];
+    let fjWagered = new Set();
+    let boardData = null;
+    let pickerId = null;
+
+    const $ = id => document.getElementById(id);
+    const money = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString()}`;
+    function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    // ==================== NEXT STEP (one primary action per phase) ====================
+
+    function remainingClues() {
+      if (!boardData) return 0;
+      return boardData.categories.reduce((n, c) => n + c.questions.filter(q => !q.answered).length, 0);
+    }
+
+    function renderNext() {
+      const step = { setup: 'setup', lobby: 'lobby', playing: 'play', 'final-wager': 'final', 'final-judge': 'final', ended: 'ended' }[gameState];
+      const order = ['setup', 'lobby', 'play', 'final', 'ended'];
+      document.querySelectorAll('#stepper li').forEach(li => {
+        const i = order.indexOf(li.dataset.step), cur = order.indexOf(step);
+        li.className = i < cur ? 'done' : i === cur ? 'now' : '';
+      });
+      $('next-eyebrow').textContent = `Step ${order.indexOf(step) + 1} of 5`;
+
+      let title = '', text = '', btns = '';
+      const n = currentPlayers.length;
+      if (gameState === 'setup') {
+        const filled = countFilled();
+        title = 'Build your board';
+        text = filled === 30 ? 'All 30 clues are in. Open a room and get people joining.' : `${filled} of 30 clues filled. Load a preset or keep writing — empty clues show as “(empty)”.`;
+        btns = `<button class="btn btn-primary btn-lg btn-block" id="create-btn" onclick="createGame()">Open a room</button>`;
+      } else if (gameState === 'lobby') {
+        title = n ? `${n} player${n === 1 ? '' : 's'} in` : 'Get people joining';
+        text = n ? 'Use “Open TV display” up top to put the board on the TV. It shows a QR code for latecomers. Start when everyone is in.' : 'Use “Open TV display” up top. Players scan the QR code on the TV or type the room code.';
+        btns = `<button class="btn btn-primary btn-lg btn-block" id="start-btn" onclick="startGame()" ${n ? '' : 'disabled'}>Start game</button>`;
+      } else if (gameState === 'playing') {
+        const left = remainingClues();
+        if (activeQuestion) {
+          title = activeQuestion.dailyDouble && !ddRevealed ? 'Set the wager' : 'Judge the answer';
+          text = activeQuestion.dailyDouble && !ddRevealed ? 'Pick who found the Daily Double and how much they bet. The clue stays hidden until you show it.' : 'Listen for the first buzzer, then mark them right or wrong.';
+        } else if (left === 0) {
+          title = 'Board cleared';
+          text = 'Every clue is played. Time for the final round.';
+          btns = `<button class="btn btn-primary btn-lg btn-block" onclick="openFinalJeopardyModal()">Start Final Jeopardy</button>`;
+        } else {
+          const picker = currentPlayers.find(p => p.id === pickerId);
+          title = picker ? `${picker.name} picks next` : 'Pick a clue';
+          text = picker ? `They got the last one. Ask for a category and value, then click it on the board. ${left} left.`
+                        : `${left} clue${left === 1 ? '' : 's'} left. Click a value on the board to put it on the TV.`;
+        }
+      } else if (gameState === 'final-wager') {
+        title = 'Collecting wagers';
+        text = `${fjWagerCount} of ${n} wagers locked. Reveal the clue when everyone is in.`;
+        btns = `<button class="btn btn-primary btn-lg btn-block" onclick="revealFinalClue()">Reveal the clue</button>`;
+      } else if (gameState === 'final-judge') {
+        const judged = document.querySelectorAll('.fj-judge-item.judged-correct, .fj-judge-item.judged-wrong').length;
+        title = 'Judge the answers';
+        const left = n - judged;
+        text = left > 0 ? `${judged} of ${n} judged. Mark every answer, then show the podium.` : 'Everyone is judged. Put the podium on the TV.';
+        btns = `<button class="btn btn-primary btn-lg btn-block" onclick="endGame()" ${left > 0 ? 'disabled' : ''}>${left > 0 ? `Judge ${left} more to finish` : 'Show the winner'}</button>`;
+      } else if (gameState === 'ended') {
+        title = `${currentPlayers[0]?.name || 'Someone'} wins`;
+        text = 'The podium is on the TV. Same players can go again with a fresh board.';
+        btns = `<button class="btn btn-primary btn-lg btn-block" onclick="resetGame()">Play again</button>`;
+      }
+      $('next-title').textContent = title;
+      $('next-text').textContent = text;
+      $('next-btns').innerHTML = btns;
+      $('fj-btn').classList.toggle('hidden', gameState !== 'playing');
+      // Setup-only controls disappear once the game is running
+      $('timers-panel').classList.toggle('hidden', !['setup', 'lobby'].includes(gameState));
+      $('danger-zone').classList.toggle('hidden', !gameCode || activeQuestion != null || gameState === 'ended');
+      $('mini-board-section').classList.toggle('hidden', ['final-wager', 'final-judge', 'ended'].includes(gameState));
+    }
 
     // ==================== HOST TIMER ====================
 
-    const HOST_RING_CIRC = 2 * Math.PI * 30; // r=30 → ~188.5
     let hostTimerInterval = null;
-
     function startHostTimer(seconds, mode) {
       clearHostTimer();
       let timeLeft = seconds;
-      const wrap = document.getElementById('host-timer');
-      const numEl = document.getElementById('host-timer-num');
-      const labelEl = document.getElementById('host-timer-label');
-      const ringEl = document.getElementById('host-timer-ring');
-
-      wrap.classList.remove('hidden');
-      numEl.textContent = timeLeft;
-      labelEl.textContent = mode === 'buzz' ? 'BUZZ' : 'ANSWER';
-      ringEl.style.stroke = mode === 'buzz' ? '#4ade80' : '#fbbf24';
-      ringEl.style.strokeDasharray = HOST_RING_CIRC;
-      ringEl.style.strokeDashoffset = 0;
-
+      const fill = $('host-timer-ring');
+      $('host-timer').classList.remove('hidden');
+      $('host-timer-num').textContent = timeLeft;
+      $('host-timer-label').textContent = mode === 'buzz' ? 'Buzz' : 'Answer';
+      fill.className = 'fill';
+      fill.style.transition = 'none'; fill.style.width = '100%';
+      requestAnimationFrame(() => { fill.style.transition = ''; });
       hostTimerInterval = setInterval(() => {
         timeLeft--;
         const pct = Math.max(0, timeLeft / seconds);
-        numEl.textContent = Math.max(0, timeLeft);
-        ringEl.style.strokeDashoffset = HOST_RING_CIRC * (1 - pct);
-        if (pct <= 0.25) ringEl.style.stroke = '#ef4444';
-        else if (pct <= 0.5) ringEl.style.stroke = '#f97316';
-        else if (mode === 'answer') ringEl.style.stroke = '#fbbf24';
-        if (timeLeft <= 0) clearHostTimer();
+        $('host-timer-num').textContent = Math.max(0, timeLeft);
+        fill.style.width = (pct * 100) + '%';
+        fill.className = 'fill' + (pct <= 0.25 ? ' low' : pct <= 0.5 ? ' mid' : '');
+        if (timeLeft <= 0) clearHostTimer(false);
       }, 1000);
     }
-
-    function clearHostTimer() {
+    function clearHostTimer(hide = true) {
       clearInterval(hostTimerInterval);
       hostTimerInterval = null;
-      document.getElementById('host-timer').classList.add('hidden');
+      if (hide) $('host-timer').classList.add('hidden');
     }
-
-    // ==================== PRESETS ====================
-
-    const PRESETS = {
-      easy: {
-        categories: [
-          {
-            name: 'Animals',
-            questions: [
-              { clue: 'The largest land animal on Earth', answer: 'What is an elephant?' },
-              { clue: 'This black and white bear eats bamboo', answer: 'What is a panda?' },
-              { clue: 'The fastest land animal', answer: 'What is a cheetah?' },
-              { clue: 'The only mammal capable of true flight', answer: 'What is a bat?' },
-              { clue: 'A group of lions is called this', answer: 'What is a pride?' },
-            ]
-          },
-          {
-            name: 'Geography',
-            questions: [
-              { clue: 'The capital of France', answer: 'What is Paris?' },
-              { clue: 'The longest river in the world', answer: 'What is the Nile?' },
-              { clue: 'The smallest country in the world', answer: 'What is Vatican City?' },
-              { clue: 'The continent with the most countries', answer: 'What is Africa?' },
-              { clue: 'The ocean between Europe and North America', answer: 'What is the Atlantic?' },
-            ]
-          },
-          {
-            name: 'Pop Culture',
-            questions: [
-              { clue: 'The wizard school Harry Potter attends', answer: 'What is Hogwarts?' },
-              { clue: 'The king of the jungle', answer: 'What is a lion?' },
-              { clue: 'Mickey Mouse\'s girlfriend', answer: 'Who is Minnie Mouse?' },
-              { clue: 'The sport played at Wimbledon', answer: 'What is tennis?' },
-              { clue: 'This superhero is also known as the Dark Knight', answer: 'Who is Batman?' },
-            ]
-          },
-          {
-            name: 'Food & Drink',
-            questions: [
-              { clue: 'The main ingredient in guacamole', answer: 'What is avocado?' },
-              { clue: 'This Italian dish is made with flat dough and toppings', answer: 'What is pizza?' },
-              { clue: 'The country that invented sushi', answer: 'What is Japan?' },
-              { clue: 'This yellow fruit is high in potassium', answer: 'What is a banana?' },
-              { clue: 'A hot drink made from roasted beans', answer: 'What is coffee?' },
-            ]
-          },
-          {
-            name: 'Sports',
-            questions: [
-              { clue: 'The number of players on a basketball team on the court', answer: 'What is 5?' },
-              { clue: 'The sport where you score a "hole in one"', answer: 'What is golf?' },
-              { clue: 'The city that hosts the Masters golf tournament', answer: 'What is Augusta?' },
-              { clue: 'The most goals scored in a World Cup final', answer: 'What is 5?' },
-              { clue: 'Michael Jordan\'s jersey number with the Bulls', answer: 'What is 23?' },
-            ]
-          },
-          {
-            name: 'Famous Firsts',
-            questions: [
-              { clue: 'The first President of the United States', answer: 'Who is George Washington?' },
-              { clue: 'The first country to give women the right to vote', answer: 'What is New Zealand?' },
-              { clue: 'The first man to walk on the moon', answer: 'Who is Neil Armstrong?' },
-              { clue: 'The first feature-length animated Disney film', answer: 'What is Snow White?' },
-              { clue: 'The first iPhone was released in this year', answer: 'What is 2007?' },
-            ]
-          },
-        ]
-      },
-      medium: {
-        categories: [
-          {
-            name: 'History',
-            questions: [
-              { clue: 'The year World War II ended', answer: 'What is 1945?' },
-              { clue: 'The ancient wonder located in Egypt', answer: 'What are the Pyramids of Giza?' },
-              { clue: 'The empire Julius Caesar led', answer: 'What is the Roman Empire?' },
-              { clue: 'The document signed at Runnymede in 1215', answer: 'What is the Magna Carta?' },
-              { clue: 'This wall divided East and West Berlin', answer: 'What is the Berlin Wall?' },
-            ]
-          },
-          {
-            name: 'Science',
-            questions: [
-              { clue: 'The chemical symbol for gold', answer: 'What is Au?' },
-              { clue: 'The speed of light in a vacuum (approx. km/s)', answer: 'What is 300,000 km/s?' },
-              { clue: 'The force that keeps planets in orbit', answer: 'What is gravity?' },
-              { clue: 'DNA stands for this', answer: 'What is Deoxyribonucleic Acid?' },
-              { clue: 'The atomic number of carbon', answer: 'What is 6?' },
-            ]
-          },
-          {
-            name: 'Literature',
-            questions: [
-              { clue: 'The author of "1984" and "Animal Farm"', answer: 'Who is George Orwell?' },
-              { clue: 'The whale in Moby-Dick', answer: 'What is a sperm whale?' },
-              { clue: 'Shakespeare\'s play about the Prince of Denmark', answer: 'What is Hamlet?' },
-              { clue: 'The fictional detective who lived at 221B Baker Street', answer: 'Who is Sherlock Holmes?' },
-              { clue: 'The author of "Pride and Prejudice"', answer: 'Who is Jane Austen?' },
-            ]
-          },
-          {
-            name: 'Music',
-            questions: [
-              { clue: 'The "King of Pop"', answer: 'Who is Michael Jackson?' },
-              { clue: 'Beethoven\'s famous symphony written while deaf', answer: 'What is the 9th Symphony?' },
-              { clue: 'The Beatles were from this city', answer: 'What is Liverpool?' },
-              { clue: 'This instrument has 88 keys', answer: 'What is a piano?' },
-              { clue: 'The genre that combines jazz and rock', answer: 'What is fusion?' },
-            ]
-          },
-          {
-            name: 'Movies',
-            questions: [
-              { clue: 'The director of Pulp Fiction', answer: 'Who is Quentin Tarantino?' },
-              { clue: 'The highest-grossing film of all time (adjusted)', answer: 'What is Gone With the Wind?' },
-              { clue: '"I\'ll be back" is a line from this film', answer: 'What is The Terminator?' },
-              { clue: 'The first film to win the Oscar for Best Picture', answer: 'What is Wings?' },
-              { clue: 'Pixar\'s first feature film', answer: 'What is Toy Story?' },
-            ]
-          },
-          {
-            name: 'Famous People',
-            questions: [
-              { clue: 'The scientist who developed the theory of relativity', answer: 'Who is Albert Einstein?' },
-              { clue: 'The first woman to win a Nobel Prize', answer: 'Who is Marie Curie?' },
-              { clue: 'The painter of the Sistine Chapel ceiling', answer: 'Who is Michelangelo?' },
-              { clue: 'The civil rights leader known for the "I Have a Dream" speech', answer: 'Who is Martin Luther King Jr.?' },
-              { clue: 'The founder of Microsoft', answer: 'Who is Bill Gates?' },
-            ]
-          },
-        ]
-      },
-      hard: {
-        categories: [
-          {
-            name: 'World History',
-            questions: [
-              { clue: 'The Byzantine Empire fell to this empire in 1453', answer: 'What is the Ottoman Empire?' },
-              { clue: 'The treaty that ended World War I', answer: 'What is the Treaty of Versailles?' },
-              { clue: 'The only US President to resign from office', answer: 'Who is Richard Nixon?' },
-              { clue: 'The year the French Revolution began', answer: 'What is 1789?' },
-              { clue: 'This philosopher wrote "The Republic"', answer: 'Who is Plato?' },
-            ]
-          },
-          {
-            name: 'Advanced Science',
-            questions: [
-              { clue: 'The SI unit of electric resistance', answer: 'What is the ohm?' },
-              { clue: 'The process by which cells divide in two identical copies', answer: 'What is mitosis?' },
-              { clue: 'The scientist who proposed the heliocentric model in 1543', answer: 'Who is Copernicus?' },
-              { clue: 'The number of bones in the adult human body', answer: 'What is 206?' },
-              { clue: 'The most abundant gas in Earth\'s atmosphere', answer: 'What is nitrogen?' },
-            ]
-          },
-          {
-            name: 'Classic Literature',
-            questions: [
-              { clue: 'Dante\'s epic poem about the afterlife', answer: 'What is The Divine Comedy?' },
-              { clue: 'The author of "Crime and Punishment"', answer: 'Who is Dostoevsky?' },
-              { clue: 'The narrator of "Moby-Dick"', answer: 'Who is Ishmael?' },
-              { clue: 'James Joyce\'s stream-of-consciousness masterpiece', answer: 'What is Ulysses?' },
-              { clue: 'The Greek epic that follows Odysseus home from Troy', answer: 'What is The Odyssey?' },
-            ]
-          },
-          {
-            name: 'Geography & Maps',
-            questions: [
-              { clue: 'The world\'s deepest lake by volume', answer: 'What is Lake Baikal?' },
-              { clue: 'The capital of Kazakhstan', answer: 'What is Astana?' },
-              { clue: 'The country with the most time zones', answer: 'What is France?' },
-              { clue: 'The Strait that separates Europe from Africa', answer: 'What is the Strait of Gibraltar?' },
-              { clue: 'The largest desert in the world', answer: 'What is Antarctica?' },
-            ]
-          },
-          {
-            name: 'Mathematics',
-            questions: [
-              { clue: 'The value of pi to 4 decimal places', answer: 'What is 3.1416?' },
-              { clue: 'A triangle with all sides equal', answer: 'What is equilateral?' },
-              { clue: 'The mathematician who proved Fermat\'s Last Theorem', answer: 'Who is Andrew Wiles?' },
-              { clue: 'The study of rates of change in mathematics', answer: 'What is calculus?' },
-              { clue: 'The formula for the area of a circle', answer: 'What is πr²?' },
-            ]
-          },
-          {
-            name: 'Economics',
-            questions: [
-              { clue: 'The author of "The Wealth of Nations"', answer: 'Who is Adam Smith?' },
-              { clue: 'The economic theory that government spending stimulates growth', answer: 'What is Keynesian economics?' },
-              { clue: 'GDP stands for this', answer: 'What is Gross Domestic Product?' },
-              { clue: 'The stock market crash that triggered the Great Depression', answer: 'What is Black Tuesday?' },
-              { clue: 'The currency used in Japan', answer: 'What is the yen?' },
-            ]
-          },
-        ]
-      },
-      college: {
-        categories: [
-          {
-            name: 'Political Theory',
-            questions: [
-              { clue: 'The author of "The Social Contract"', answer: 'Who is Rousseau?' },
-              { clue: 'The political theorist who wrote "Leviathan"', answer: 'Who is Thomas Hobbes?' },
-              { clue: 'The term for a government by the wealthy', answer: 'What is plutocracy?' },
-              { clue: 'Marx\'s collaborator on "The Communist Manifesto"', answer: 'Who is Friedrich Engels?' },
-              { clue: 'The political philosophy emphasizing individual liberty', answer: 'What is libertarianism?' },
-            ]
-          },
-          {
-            name: 'Science & Tech',
-            questions: [
-              { clue: 'The programming language created by Guido van Rossum', answer: 'What is Python?' },
-              { clue: 'The theory describing quantum gravity is still called this', answer: 'What is the Theory of Everything?' },
-              { clue: 'CRISPR is used to edit this molecule', answer: 'What is DNA?' },
-              { clue: 'The company that created the first commercial microprocessor', answer: 'What is Intel?' },
-              { clue: 'Alan Turing proposed this hypothetical computing machine', answer: 'What is the Turing Machine?' },
-            ]
-          },
-          {
-            name: 'Classic Films',
-            questions: [
-              { clue: 'Orson Welles\' debut film, widely considered the greatest ever', answer: 'What is Citizen Kane?' },
-              { clue: 'The director of 2001: A Space Odyssey', answer: 'Who is Stanley Kubrick?' },
-              { clue: 'The Italian neorealist film featuring a stolen bicycle', answer: 'What is Bicycle Thieves?' },
-              { clue: 'Ingmar Bergman\'s film about Death playing chess', answer: 'What is The Seventh Seal?' },
-              { clue: 'The French New Wave movement was led by this director of Breathless', answer: 'Who is Jean-Luc Godard?' },
-            ]
-          },
-          {
-            name: 'World Literature',
-            questions: [
-              { clue: 'The magical realist author of "One Hundred Years of Solitude"', answer: 'Who is Gabriel García Márquez?' },
-              { clue: 'Kafka\'s novella about a man who wakes as a giant insect', answer: 'What is The Metamorphosis?' },
-              { clue: 'The author of "Things Fall Apart"', answer: 'Who is Chinua Achebe?' },
-              { clue: 'Tolstoy\'s epic novel set during the Napoleonic Wars', answer: 'What is War and Peace?' },
-              { clue: 'The Japanese author of "Norwegian Wood"', answer: 'Who is Haruki Murakami?' },
-            ]
-          },
-          {
-            name: 'Economics & Finance',
-            questions: [
-              { clue: 'The term for the tendency of markets to self-correct', answer: 'What is the invisible hand?' },
-              { clue: 'Black-Scholes is a model for pricing these financial instruments', answer: 'What are options?' },
-              { clue: 'The economist who developed the theory of comparative advantage', answer: 'Who is David Ricardo?' },
-              { clue: 'A market dominated by a few large sellers', answer: 'What is an oligopoly?' },
-              { clue: 'The "paradox of thrift" is associated with this economist', answer: 'Who is Keynes?' },
-            ]
-          },
-          {
-            name: 'Philosophy & Ethics',
-            questions: [
-              { clue: 'Kant\'s universal moral law is called this', answer: 'What is the Categorical Imperative?' },
-              { clue: 'The thought experiment involving a runaway trolley', answer: 'What is the Trolley Problem?' },
-              { clue: 'Nietzsche declared this about God', answer: 'What is "God is dead"?' },
-              { clue: 'The philosophical view that only the mind exists', answer: 'What is idealism?' },
-              { clue: 'Sartre\'s claim that "existence precedes" this', answer: 'What is essence?' },
-            ]
-          },
-        ]
-      }
-    };
 
     // ==================== BOARD BUILDER ====================
 
-    let boardData = null;
-
     function buildSetupGrid() {
-      const grid = document.getElementById('setup-grid');
+      const grid = $('setup-grid');
       grid.innerHTML = '';
-
-      // Category headers
       for (let c = 0; c < NUM_CATS; c++) {
         const div = document.createElement('div');
-        div.className = 'category-header-cell';
-        div.innerHTML = `
-          <div class="cat-label">Category ${c + 1}</div>
-          <input type="text" class="cat-name-input" id="cat-name-${c}" placeholder="Category name" maxlength="30">
-        `;
+        div.className = 'cat-head';
+        div.innerHTML = `<input type="text" id="cat-name-${c}" placeholder="Category ${c + 1}" maxlength="30" aria-label="Category ${c + 1} name">`;
         grid.appendChild(div);
       }
-
-      // Question rows
       VALUES.forEach((val, r) => {
         for (let c = 0; c < NUM_CATS; c++) {
           const div = document.createElement('div');
           div.className = 'q-cell';
+          div.id = `qc-${c}-${r}`;
           div.innerHTML = `
-            <div class="q-value">$${val}</div>
-            <input type="text" class="q-clue-input" id="clue-${c}-${r}" placeholder="Clue" maxlength="300">
-            <input type="text" class="q-answer-input" id="answer-${c}-${r}" placeholder="Answer" maxlength="200">
-            <label class="dd-check-label">
-              <input type="checkbox" id="dd-${c}-${r}" onchange="handleDDChange(${c}, ${r})"> Daily Double
-            </label>
-          `;
+            <div class="q-top">
+              <span class="q-val">$${val}</span>
+              <label class="dd-toggle" title="Make this the Daily Double"><input type="checkbox" id="dd-${c}-${r}" onchange="handleDDChange(${c}, ${r})">DD</label>
+            </div>
+            <textarea class="q-clue-input" id="clue-${c}-${r}" placeholder="Clue" maxlength="300" rows="2"></textarea>
+            <textarea class="q-answer-input" id="answer-${c}-${r}" placeholder="Answer" maxlength="200" rows="1"></textarea>`;
           grid.appendChild(div);
         }
       });
+      grid.addEventListener('input', refreshFill);
+      refreshFill();
+    }
+
+    function countFilled() {
+      let n = 0;
+      for (let c = 0; c < NUM_CATS; c++) for (let r = 0; r < VALUES.length; r++) {
+        if ($(`clue-${c}-${r}`)?.value.trim() && $(`answer-${c}-${r}`)?.value.trim()) n++;
+      }
+      return n;
+    }
+
+    function refreshFill() {
+      for (let c = 0; c < NUM_CATS; c++) for (let r = 0; r < VALUES.length; r++) {
+        const cell = $(`qc-${c}-${r}`);
+        if (!cell) continue;
+        cell.classList.toggle('filled', !!($(`clue-${c}-${r}`).value.trim() && $(`answer-${c}-${r}`).value.trim()));
+        cell.classList.toggle('dd', $(`dd-${c}-${r}`).checked);
+      }
+      const n = countFilled();
+      $('fill-count').textContent = `${n} of 30 clues`;
+      $('fill-bar').style.width = (n / 30 * 100) + '%';
+      if (gameState === 'setup') renderNext();
     }
 
     function handleDDChange(catIdx, qIdx) {
-      if (document.getElementById(`dd-${catIdx}-${qIdx}`).checked) {
-        // Uncheck all others
-        for (let c = 0; c < NUM_CATS; c++) {
-          for (let r = 0; r < VALUES.length; r++) {
-            if (c !== catIdx || r !== qIdx) {
-              const el = document.getElementById(`dd-${c}-${r}`);
-              if (el) el.checked = false;
-            }
-          }
+      if ($(`dd-${catIdx}-${qIdx}`).checked) {
+        for (let c = 0; c < NUM_CATS; c++) for (let r = 0; r < VALUES.length; r++) {
+          if (c !== catIdx || r !== qIdx) { const el = $(`dd-${c}-${r}`); if (el) el.checked = false; }
         }
       }
+      refreshFill();
     }
 
     function getBoardData() {
       const categories = [];
       for (let c = 0; c < NUM_CATS; c++) {
-        const name = document.getElementById(`cat-name-${c}`).value.trim() || `Category ${c + 1}`;
-        const questions = [];
-        VALUES.forEach((val, r) => {
-          const clue = document.getElementById(`clue-${c}-${r}`).value.trim();
-          const answer = document.getElementById(`answer-${c}-${r}`).value.trim();
-          const dailyDouble = document.getElementById(`dd-${c}-${r}`).checked;
-          questions.push({ clue: clue || '(empty)', answer: answer || '(none)', value: val, answered: false, dailyDouble });
-        });
+        const name = $(`cat-name-${c}`).value.trim() || `Category ${c + 1}`;
+        const questions = VALUES.map((val, r) => ({
+          clue: $(`clue-${c}-${r}`).value.trim() || '(empty)',
+          answer: $(`answer-${c}-${r}`).value.trim() || '(none)',
+          value: val, answered: false,
+          dailyDouble: $(`dd-${c}-${r}`).checked,
+        }));
         categories.push({ name, questions });
       }
-      const finalJeopardy = {
-        category: document.getElementById('fj-setup-cat').value.trim(),
-        clue: document.getElementById('fj-setup-clue').value.trim(),
-        answer: document.getElementById('fj-setup-answer').value.trim(),
+      return {
+        categories,
+        finalJeopardy: { category: $('fj-setup-cat').value.trim(), clue: $('fj-setup-clue').value.trim(), answer: $('fj-setup-answer').value.trim() },
       };
-      return { categories, finalJeopardy };
     }
 
     function loadBoardData(data) {
       data.categories.forEach((cat, c) => {
         if (c >= NUM_CATS) return;
-        const nameEl = document.getElementById(`cat-name-${c}`);
-        if (nameEl) nameEl.value = cat.name || '';
+        $(`cat-name-${c}`).value = cat.name || '';
         cat.questions.forEach((q, r) => {
           if (r >= VALUES.length) return;
-          const clueEl = document.getElementById(`clue-${c}-${r}`);
-          const answerEl = document.getElementById(`answer-${c}-${r}`);
-          const ddEl = document.getElementById(`dd-${c}-${r}`);
-          if (clueEl) clueEl.value = q.clue || '';
-          if (answerEl) answerEl.value = q.answer || '';
-          if (ddEl) ddEl.checked = q.dailyDouble || false;
+          $(`clue-${c}-${r}`).value = q.clue || '';
+          $(`answer-${c}-${r}`).value = q.answer || '';
+          $(`dd-${c}-${r}`).checked = q.dailyDouble || false;
         });
       });
-      // Load Final Jeopardy fields if present
       if (data.finalJeopardy) {
-        const fj = data.finalJeopardy;
-        document.getElementById('fj-setup-cat').value = fj.category || '';
-        document.getElementById('fj-setup-clue').value = fj.clue || '';
-        document.getElementById('fj-setup-answer').value = fj.answer || '';
+        $('fj-setup-cat').value = data.finalJeopardy.category || '';
+        $('fj-setup-clue').value = data.finalJeopardy.clue || '';
+        $('fj-setup-answer').value = data.finalJeopardy.answer || '';
       }
+      refreshFill();
     }
 
     function loadPreset(key) {
       if (!key || !PRESETS[key]) return;
       loadBoardData(PRESETS[key]);
-      document.getElementById('preset-select').value = '';
+      $('preset-select').value = '';
     }
 
     function clearBoard() {
+      if (countFilled() && !confirm('Clear every clue on this board?')) return;
       buildSetupGrid();
+      ['fj-setup-cat', 'fj-setup-clue', 'fj-setup-answer'].forEach(id => $(id).value = '');
     }
 
     // ==================== SAVE / LOAD ====================
 
+    function readSaved() { try { return JSON.parse(localStorage.getItem('jeopardy-boards') || '[]'); } catch (e) { return []; } }
+    function writeSaved(b) { try { localStorage.setItem('jeopardy-boards', JSON.stringify(b)); } catch (e) {} }
+
     function saveBoard() {
-      document.getElementById('save-board-name').value = '';
-      document.getElementById('save-dialog').classList.remove('hidden');
-      setTimeout(() => document.getElementById('save-board-name').focus(), 50);
+      $('save-board-name').value = '';
+      $('save-dialog').classList.remove('hidden');
+      setTimeout(() => $('save-board-name').focus(), 50);
     }
-
-    function closeSaveDialog() {
-      document.getElementById('save-dialog').classList.add('hidden');
-    }
-
+    function closeSaveDialog() { $('save-dialog').classList.add('hidden'); }
     function confirmSaveBoard() {
-      const name = document.getElementById('save-board-name').value.trim();
-      if (!name) { document.getElementById('save-board-name').focus(); return; }
-      const boards = JSON.parse(localStorage.getItem('jeopardy-boards') || '[]');
+      const name = $('save-board-name').value.trim();
+      if (!name) { $('save-board-name').focus(); return; }
+      const boards = readSaved();
       boards.push({ name, data: getBoardData(), saved: new Date().toLocaleDateString() });
-      localStorage.setItem('jeopardy-boards', JSON.stringify(boards));
+      writeSaved(boards);
       closeSaveDialog();
     }
-
     function showSaved() {
-      const boards = JSON.parse(localStorage.getItem('jeopardy-boards') || '[]');
-      const panel = document.getElementById('saved-panel');
-      const list = document.getElementById('saved-list');
-      if (!boards.length) {
-        list.innerHTML = '<div style="color:rgba(255,255,255,0.4); font-size:0.9rem;">No saved boards yet.</div>';
-      } else {
-        list.innerHTML = boards.map((b, i) => `
-          <div class="saved-board-item">
-            <div>
-              <div class="saved-name">${escHtml(b.name)}</div>
-              <div class="saved-meta">${b.saved || ''}</div>
-            </div>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-sm btn-gold" onclick="loadSaved(${i})">Load</button>
-              <button class="btn btn-sm" style="border-color:rgba(239,68,68,0.4); color:#f87171;" onclick="deleteSaved(${i})">Delete</button>
-            </div>
-          </div>
-        `).join('');
-      }
-      panel.classList.remove('hidden');
+      const boards = readSaved();
+      $('saved-list').innerHTML = boards.length ? boards.map((b, i) => `
+        <div class="saved-item">
+          <div style="flex:1;"><div style="font-weight:600;">${escHtml(b.name)}</div><div class="muted small">${b.saved || ''}</div></div>
+          <button class="btn btn-sm" onclick="loadSaved(${i})">Load</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSaved(${i})">Delete</button>
+        </div>`).join('') : '<div class="muted small">Nothing saved yet. Boards save to this browser.</div>';
+      $('saved-panel').classList.remove('hidden');
     }
-
-    function hideSaved() {
-      document.getElementById('saved-panel').classList.add('hidden');
-    }
-
-    function loadSaved(i) {
-      const boards = JSON.parse(localStorage.getItem('jeopardy-boards') || '[]');
-      if (boards[i]) {
-        loadBoardData(boards[i].data);
-        hideSaved();
-      }
-    }
-
-    function deleteSaved(i) {
-      const boards = JSON.parse(localStorage.getItem('jeopardy-boards') || '[]');
-      boards.splice(i, 1);
-      localStorage.setItem('jeopardy-boards', JSON.stringify(boards));
-      showSaved();
-    }
+    function hideSaved() { $('saved-panel').classList.add('hidden'); }
+    function loadSaved(i) { const b = readSaved()[i]; if (b) { loadBoardData(b.data); hideSaved(); } }
+    function deleteSaved(i) { const b = readSaved(); b.splice(i, 1); writeSaved(b); showSaved(); }
 
     // ==================== GAME MANAGEMENT ====================
 
@@ -800,372 +653,414 @@
       socket.emit('create-game', boardData, (res) => {
         if (res.error) { alert(res.error); return; }
         gameCode = res.code;
-        document.getElementById('room-code-text').textContent = gameCode;
-        document.getElementById('room-code-display').classList.remove('hidden');
-        document.getElementById('board-btn').disabled = false;
-        document.getElementById('start-btn').disabled = false;
-        document.getElementById('fj-btn').classList.remove('hidden');
-        document.getElementById('reset-btn').classList.remove('hidden');
-        document.getElementById('create-btn').textContent = 'Recreate Game';
-        document.getElementById('players-panel').style.display = '';
+        gameState = 'lobby';
+        $('room-code-text').textContent = gameCode;
+        $('room-code-display').classList.remove('hidden');
+        $('board-btn').classList.remove('hidden');
+        $('players-panel').classList.remove('hidden');
+        $('danger-zone').classList.remove('hidden');
+        $('nav-game').disabled = false;
+        updatePlayerList([]);
         showSection('game');
         renderMiniBoard();
+        renderNext();
       });
     }
 
     function openBoardUrl() {
       if (!gameCode) return;
       const w = 1280, h = 800;
-      const left = Math.round((screen.width - w) / 2);
-      const top = Math.round((screen.height - h) / 2);
-      window.open(`/board.html?code=${gameCode}`, 'JeopardyBoard',
-        `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`);
+      const left = Math.round((screen.width - w) / 2), top = Math.round((screen.height - h) / 2);
+      window.open(`/board.html?code=${gameCode}`, 'JeopardyBoard', `width=${w},height=${h},left=${left},top=${top},resizable=yes`);
     }
 
     function startGame() {
       socket.emit('start-game');
       gameState = 'playing';
+      renderMiniBoard();
+      renderNext();
+    }
+
+    function confirmReset() {
+      if (confirm('Reset every score to $0 and put all clues back on the board? Players stay connected.')) resetGame();
     }
 
     function resetGame() {
-      const fresh = getBoardData();
-      socket.emit('reset-game', fresh);
+      socket.emit('reset-game', getBoardData());
       gameState = 'playing';
       activeQuestion = null;
-      document.getElementById('active-q-panel').classList.add('hidden');
-      document.getElementById('buzz-panel').classList.add('hidden');
-      document.getElementById('dd-wager-panel').classList.add('hidden');
-      document.getElementById('fj-host-panel').classList.add('hidden');
-      document.getElementById('fj-launch-panel').classList.add('hidden');
-      document.getElementById('game-over-panel').classList.add('hidden');
+      fjWagersLog = [];
+      pickerId = null;
+      ['active-q-panel', 'fj-host-panel', 'fj-launch-panel', 'game-over-panel'].forEach(id => $(id).classList.add('hidden'));
+      $('mini-board-section').classList.remove('hidden');
       renderMiniBoard();
+      renderNext();
     }
 
     // ==================== MINI BOARD ====================
 
     function renderMiniBoard() {
-      const grid = document.getElementById('mini-board');
+      const grid = $('mini-board');
       grid.innerHTML = '';
       if (!boardData) return;
-
-      // Headers
       boardData.categories.forEach(cat => {
         const d = document.createElement('div');
         d.className = 'mini-cat';
         d.textContent = cat.name;
         grid.appendChild(d);
       });
-
-      // Cells
+      const canPick = gameState === 'playing' && !activeQuestion;
       VALUES.forEach((val, r) => {
         boardData.categories.forEach((cat, c) => {
           const q = cat.questions[r];
-          const d = document.createElement('div');
-          d.className = 'mini-cell' + (q?.answered ? ' answered' : '');
-          d.innerHTML = `<span>$${val}</span>` + (q?.dailyDouble ? '<span class="dd-star">DD</span>' : '');
-          if (!q?.answered) {
-            const buzzLimit = parseInt(document.getElementById('buzz-time-limit').value) || 30;
-            const ansLimit = parseInt(document.getElementById('answer-time-limit').value) || 10;
-            d.onclick = () => selectQuestion(c, r, buzzLimit, ansLimit);
+          const b = document.createElement('button');
+          b.className = 'mini-cell' + (q?.answered ? ' answered' : '');
+          b.innerHTML = `$${val}` + (q?.dailyDouble && !q?.answered ? '<span class="dd-star">DD</span>' : '');
+          if (q?.answered) b.disabled = true;
+          else {
+            b.disabled = !canPick;
+            b.onclick = () => selectQuestion(c, r, parseInt($('buzz-time-limit').value) || 30, parseInt($('answer-time-limit').value) || 10);
           }
-          grid.appendChild(d);
+          b.setAttribute('aria-label', `${cat.name} for $${val}`);
+          grid.appendChild(b);
         });
       });
+      grid.classList.toggle('busy', !!activeQuestion);
+      const left = remainingClues();
+      $('board-left').textContent = `${left} of 30 left`;
+      $('board-hint').textContent = gameState === 'lobby' ? 'Board unlocks when you start the game' : gameState === 'ended' ? 'Tonight’s board' : activeQuestion ? 'Finish this clue to pick the next one' : 'Click a value to put that clue on the TV';
     }
 
     function selectQuestion(catIndex, qIndex, buzzTimeLimit, answerTimeLimit) {
       socket.emit('select-question', { catIndex, qIndex, buzzTimeLimit, answerTimeLimit });
     }
 
-    // ==================== ACTIVE QUESTION ====================
+    // ==================== ACTIVE CLUE ====================
+
+    function setJudgeEnabled(on, who) {
+      $('btn-correct').disabled = !on;
+      $('btn-wrong').disabled = !on;
+      $('judge-who').innerHTML = who ? `Judging <b>${escHtml(who)}</b>` : 'Waiting for a buzz…';
+    }
 
     function showActiveQuestion(q) {
       activeQuestion = q;
-      document.getElementById('aq-cat').textContent = `${q.category} — $${q.value}${q.dailyDouble ? ' (Daily Double)' : ''}`;
-      document.getElementById('aq-clue').textContent = q.clue;
-      document.getElementById('aq-answer').textContent = q.answer;
-      document.getElementById('active-q-panel').classList.remove('hidden');
-
+      ddRevealed = false;
+      $('aq-cat').textContent = q.category;
+      $('aq-val').textContent = `$${q.value}`;
+      $('aq-dd').classList.toggle('hidden', !q.dailyDouble);
+      $('aq-clue').textContent = q.clue;
+      $('aq-answer').textContent = q.answer;
+      $('buzz-order-list').innerHTML = '<span class="muted small">Nobody yet</span>';
+      $('active-q-panel').classList.remove('hidden');
       if (q.dailyDouble) {
         populateDDPlayerSelect();
-        document.getElementById('dd-wager-panel').classList.remove('hidden');
+        $('dd-wager-panel').classList.remove('hidden');
+        $('judge-area').classList.add('hidden');
       } else {
-        document.getElementById('dd-wager-panel').classList.add('hidden');
+        $('dd-wager-panel').classList.add('hidden');
+        $('judge-area').classList.remove('hidden');
+        $('buzz-panel').classList.remove('hidden');
+        setJudgeEnabled(false);
       }
+      renderMiniBoard();
+      renderNext();
     }
 
+    function ddMaxFor(id) {
+      const p = currentPlayers.find(x => x.id === id);
+      return Math.max(1000, p && p.score > 0 ? p.score : 0);
+    }
     function populateDDPlayerSelect() {
-      const sel = document.getElementById('dd-player-select');
-      sel.innerHTML = currentPlayers.map(p =>
-        `<option value="${p.id}">${escHtml(p.name)} ($${p.score})</option>`
-      ).join('');
+      const sel = $('dd-player-select');
+      sel.innerHTML = currentPlayers.map(p => `<option value="${p.id}">${escHtml(p.name)} (${money(p.score)})</option>`).join('');
+      if (pickerId && currentPlayers.some(p => p.id === pickerId)) sel.value = pickerId;
+      sel.onchange = refreshDDMax;
+      refreshDDMax();
+    }
+    function refreshDDMax() {
+      const max = ddMaxFor($('dd-player-select').value);
+      $('dd-max').textContent = money(max);
+      $('dd-wager-input').max = max;
+    }
+    function setDDWager(frac) {
+      const max = ddMaxFor($('dd-player-select').value);
+      $('dd-wager-input').value = frac === 0 ? 5 : Math.floor(max * frac);
     }
 
     function revealDD() {
-      const playerId = document.getElementById('dd-player-select').value;
-      const wager = parseInt(document.getElementById('dd-wager-input').value) || 200;
+      const playerId = $('dd-player-select').value;
+      const wager = parseInt($('dd-wager-input').value) || 200;
       socket.emit('dd-reveal', { playerId, wager });
-      document.getElementById('dd-wager-panel').classList.add('hidden');
     }
 
-    function answerResult(correct) {
-      socket.emit('answer-result', { correct });
-    }
-
-    function revealAnswer() {
-      socket.emit('reveal-answer');
-    }
-
-    function dismissQuestion() {
-      socket.emit('dismiss-question');
-    }
+    function answerResult(correct) { socket.emit('answer-result', { correct }); }
+    function revealAnswer() { socket.emit('reveal-answer'); }
+    function dismissQuestion() { socket.emit('dismiss-question'); }
 
     function closeQuestionUI() {
       activeQuestion = null;
       clearHostTimer();
-      document.getElementById('active-q-panel').classList.add('hidden');
-      document.getElementById('buzz-panel').classList.add('hidden');
-      document.getElementById('dd-wager-panel').classList.add('hidden');
-      if (boardData) {
-        socket.emit('sync-board', null); // no-op, just refresh mini board from server state
-      }
+      $('active-q-panel').classList.add('hidden');
+      $('dd-wager-panel').classList.add('hidden');
     }
 
     // ==================== FINAL JEOPARDY ====================
 
     function openFinalJeopardyModal() {
-      // Pre-populate from setup fields
-      const cat = document.getElementById('fj-setup-cat').value.trim();
-      const clue = document.getElementById('fj-setup-clue').value.trim();
-      const answer = document.getElementById('fj-setup-answer').value.trim();
-      document.getElementById('fj-cat-input').value = cat;
-      document.getElementById('fj-clue-input').value = clue;
-      document.getElementById('fj-answer-input').value = answer;
-      document.getElementById('fj-launch-panel').classList.remove('hidden');
+      $('fj-cat-input').value = $('fj-setup-cat').value.trim();
+      $('fj-clue-input').value = $('fj-setup-clue').value.trim();
+      $('fj-answer-input').value = $('fj-setup-answer').value.trim();
+      $('fj-launch-panel').classList.remove('hidden');
       showSection('game');
+      $('fj-launch-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
-    function hideFJLaunch() {
-      document.getElementById('fj-launch-panel').classList.add('hidden');
-    }
+    function hideFJLaunch() { $('fj-launch-panel').classList.add('hidden'); }
 
     function startFinalJeopardy() {
-      const category = document.getElementById('fj-cat-input').value.trim();
-      const clue = document.getElementById('fj-clue-input').value.trim();
-      const answer = document.getElementById('fj-answer-input').value.trim();
-      if (!category || !clue || !answer) {
-        // Highlight empty fields
-        ['fj-cat-input','fj-clue-input','fj-answer-input'].forEach(id => {
-          const el = document.getElementById(id);
-          if (!el.value.trim()) el.style.borderColor = 'rgba(239,68,68,0.7)';
-          else el.style.borderColor = '';
-        });
-        return;
-      }
+      const category = $('fj-cat-input').value.trim();
+      const clue = $('fj-clue-input').value.trim();
+      const answer = $('fj-answer-input').value.trim();
+      const missing = ['fj-cat-input', 'fj-clue-input', 'fj-answer-input'].filter(id => !$(id).value.trim());
+      ['fj-cat-input', 'fj-clue-input', 'fj-answer-input'].forEach(id => $(id).style.borderColor = missing.includes(id) ? 'var(--bad)' : '');
+      if (missing.length) return;
+      fjData = { category, clue, answer };
       hideFJLaunch();
       socket.emit('start-final-jeopardy', { category, clue, answer });
     }
 
+    function renderWagerChips() {
+      $('fj-wager-chips').innerHTML = currentPlayers.map(p =>
+        `<span class="chip ${fjWagered.has(p.id) ? 'chip-good' : ''}">${fjWagered.has(p.id) ? '✓ ' : ''}${escHtml(p.name)}</span>`).join('');
+    }
+
     function showFJPanel(players) {
-      fjPlayers = players.filter(p => p.score > 0);
       fjWagerCount = 0;
-      document.getElementById('fj-total-players').textContent = Object.keys(currentPlayers).length || players.length;
-      document.getElementById('fj-wager-count').textContent = 0;
-      document.getElementById('fj-host-panel').classList.remove('hidden');
-      document.getElementById('fj-phase-wager').classList.remove('hidden');
-      document.getElementById('fj-phase-judge').classList.add('hidden');
+      fjWagered = new Set();
+      $('fj-cat-chip').textContent = fjData?.category || '';
+      $('fj-total-players').textContent = players.length;
+      $('fj-wager-count').textContent = 0;
+      $('fj-host-panel').classList.remove('hidden');
+      $('fj-phase-wager').classList.remove('hidden');
+      $('fj-phase-judge').classList.add('hidden');
+      $('mini-board-section').classList.add('hidden');
+      renderWagerChips();
     }
 
     function revealFinalClue() {
       socket.emit('reveal-final-clue');
+      gameState = 'final-judge';
+      $('fj-clue-echo').textContent = fjData?.clue || '';
+      $('fj-answer-echo').textContent = fjData?.answer || '';
       buildJudgeList();
-      document.getElementById('fj-phase-wager').classList.add('hidden');
-      document.getElementById('fj-phase-judge').classList.remove('hidden');
+      $('fj-phase-wager').classList.add('hidden');
+      $('fj-phase-judge').classList.remove('hidden');
+      renderNext();
     }
 
     function buildJudgeList() {
-      const list = document.getElementById('fj-judge-list');
-      list.innerHTML = currentPlayers.map(p => `
+      $('fj-judge-list').innerHTML = currentPlayers.map(p => `
         <div class="fj-judge-item" id="fj-judge-${p.id}">
-          <div>
-            <div class="fj-judge-name">${escHtml(p.name)}</div>
-            <div class="fj-judge-wager">Wager TBD</div>
-          </div>
+          <div><div class="fj-judge-name">${escHtml(p.name)}</div><div class="fj-said" id="fj-said-${p.id}">Typing…</div><div class="fj-judge-wager muted small">Has ${money(p.score)}</div></div>
           <div class="fj-judge-btns">
-            <button class="btn btn-sm" style="background:rgba(74,222,128,0.2); border-color:rgba(74,222,128,0.5); color:#4ade80;"
-              onclick="judgeFJ('${p.id}', true)">Correct</button>
-            <button class="btn btn-sm" style="background:rgba(239,68,68,0.2); border-color:rgba(239,68,68,0.5); color:#f87171;"
-              onclick="judgeFJ('${p.id}', false)">Wrong</button>
+            <button class="btn btn-sm btn-good" onclick="judgeFJ('${p.id}', true)">Correct</button>
+            <button class="btn btn-sm btn-bad" onclick="judgeFJ('${p.id}', false)">Wrong</button>
           </div>
-        </div>
-      `).join('');
+        </div>`).join('');
     }
 
     function judgeFJ(playerId, correct) {
       socket.emit('final-answer-result', { playerId, correct });
-      const item = document.getElementById(`fj-judge-${playerId}`);
+      const item = $(`fj-judge-${playerId}`);
       if (item) {
         item.classList.add(correct ? 'judged-correct' : 'judged-wrong');
         item.querySelectorAll('button').forEach(b => b.disabled = true);
       }
     }
 
-    function endGame() {
-      socket.emit('end-game');
-    }
+    function endGame() { socket.emit('end-game'); }
 
-    // ==================== PLAYER LIST ====================
+    // ==================== PLAYERS ====================
 
     function updatePlayerList(players) {
       currentPlayers = players;
-      document.getElementById('player-count').textContent = players.length;
-      const list = document.getElementById('player-list');
-      if (!players.length) {
-        list.innerHTML = '<div style="color:rgba(255,255,255,0.35); font-size:0.85rem;">No players yet...</div>';
-        return;
-      }
-      list.innerHTML = players.map(p => `
-        <div class="player-list-item">
-          <div>
-            <div class="player-item-name">${escHtml(p.name)}</div>
-            <div class="player-item-score ${p.score < 0 ? 'negative' : ''}">${p.score < 0 ? '-' : ''}$${Math.abs(p.score)}</div>
-          </div>
-          <div class="player-controls">
-            <button class="btn btn-sm" onclick="adjustScore('${p.id}', ${activeQuestion?.value || 200})" title="+">+</button>
-            <button class="btn btn-sm" onclick="adjustScore('${p.id}', -${activeQuestion?.value || 200})" title="-">-</button>
-          </div>
-        </div>
-      `).join('');
+      $('player-count').textContent = players.length;
+      const step = activeQuestion?.value || 200;
+      $('player-list').innerHTML = players.length ? players.map(p => `
+        <div class="player-row">
+          <span class="nm">${escHtml(p.name)}</span>
+          <span class="sc ${p.score < 0 ? 'neg' : ''}">${money(p.score)}</span>
+          <span class="adj">
+            <button class="btn btn-sm" onclick="adjustScore('${p.id}', ${step})" title="Add $${step}" aria-label="Add $${step} to ${escHtml(p.name)}">+</button>
+            <button class="btn btn-sm" onclick="adjustScore('${p.id}', -${step})" title="Take $${step}" aria-label="Take $${step} from ${escHtml(p.name)}">−</button>
+          </span>
+        </div>`).join('') : '<div class="muted small">Nobody yet. They join from their phones.</div>';
+      if (['lobby', 'final-wager', 'final-judge'].includes(gameState)) renderNext();
     }
 
-    function adjustScore(playerId, delta) {
-      socket.emit('adjust-score', { playerId, delta });
+    function adjustScore(playerId, delta) { socket.emit('adjust-score', { playerId, delta }); }
+    function toggleAdjust() {
+      const on = $('players-panel').classList.toggle('adjusting');
+      $('adjust-toggle').textContent = on ? 'Done' : 'Adjust scores';
     }
 
-    // ==================== SECTION NAV ====================
+    // ==================== RECAP ====================
+
+    let fjWagersLog = [];
+    let lastAwards = [];
+    function copyResults() {
+      const lines = [`jeopardyVIBES — ${new Date().toLocaleDateString()}`]
+        .concat(currentPlayers.map((p, i) => `${i + 1}. ${p.name} ${money(p.score)}`))
+        .concat(lastAwards.map(a => `${a.t}: ${a.w} (${a.d})`));
+      const text = lines.join('\n');
+      const done = () => { $('copy-btn').textContent = 'Copied ✓'; setTimeout(() => $('copy-btn').textContent = 'Copy results for the group chat', 2000); };
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(done, () => prompt('Copy the results:', text));
+      else prompt('Copy the results:', text);
+    }
+
+    function renderRecap(players) {
+      lastAwards = computeAwards(players, fjWagersLog);
+      $('host-awards').innerHTML = lastAwards.map(a => `<div class="a"><div class="t">${a.t}</div><div class="w">${escHtml(a.w)}</div><div class="d">${a.d}</div></div>`).join('');
+      $('recap-body').innerHTML = players.map((p, i) => `
+        <tr class="${i === 0 ? 'first' : ''}">
+          <td>${escHtml(p.name)}</td>
+          <td class="r">${p.stats?.buzzes ?? 0}</td>
+          <td class="r">${p.stats?.correct ?? 0}</td>
+          <td class="r">${p.stats?.wrong ?? 0}</td>
+          <td class="r ${p.score < 0 ? 'neg' : ''}">${money(p.score)}</td>
+        </tr>`).join('');
+    }
+
+    // ==================== NAV ====================
 
     function showSection(name) {
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(`section-${name}`).classList.add('active');
-      document.getElementById(`nav-${name}`).classList.add('active');
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      $(`section-${name}`).classList.add('active');
+      $(`nav-${name}`).classList.add('active');
+      // Once a room exists the stepper is the navigation; the builder is a side trip.
+      $('tabs').classList.toggle('hidden', !!gameCode);
+      $('back-to-game').classList.toggle('hidden', !gameCode);
     }
 
     // ==================== SOCKET EVENTS ====================
 
-    socket.on('players-update', (players) => {
-      updatePlayerList(players);
-    });
+    socket.on('players-update', updatePlayerList);
+    socket.on('player-left', ({ players }) => updatePlayerList(players));
 
-    socket.on('player-left', ({ players }) => {
-      updatePlayerList(players);
-    });
-
-    socket.on('game-started', () => {
-      gameState = 'playing';
-      document.getElementById('nav-game').disabled = false;
-    });
+    socket.on('game-started', () => { gameState = 'playing'; renderMiniBoard(); renderNext(); });
 
     socket.on('question-active', (q) => {
       showActiveQuestion(q);
-      document.getElementById('buzz-order-list').innerHTML = '';
-      document.getElementById('buzz-panel').classList.remove('hidden');
       if (!q.dailyDouble && q.buzzTimeLimit) startHostTimer(q.buzzTimeLimit, 'buzz');
     });
 
     socket.on('dd-revealed', ({ playerName, wager }) => {
-      document.getElementById('aq-cat').textContent += ` | ${playerName} — Wager: $${wager}`;
+      ddRevealed = true;
+      $('aq-val').textContent = `$${wager} wager`;
+      $('dd-wager-panel').classList.add('hidden');
+      $('judge-area').classList.remove('hidden');
+      $('buzz-panel').classList.add('hidden');
+      setJudgeEnabled(true, playerName);
+      if (activeQuestion?.answerTimeLimit) startHostTimer(activeQuestion.answerTimeLimit, 'answer');
+      renderNext();
     });
 
     socket.on('buzz-update', ({ buzzOrder }) => {
       if (activeQuestion?.answerTimeLimit) startHostTimer(activeQuestion.answerTimeLimit, 'answer');
-      const list = document.getElementById('buzz-order-list');
-      list.innerHTML = buzzOrder.map((b, i) => `
-        <div style="padding:4px 10px; border-radius:20px; font-size:0.85rem;
-          background:${i === 0 ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'};
-          border:1px solid ${i === 0 ? 'rgba(74,222,128,0.5)' : 'rgba(255,255,255,0.15)'};
-          color:${i === 0 ? '#4ade80' : 'rgba(255,255,255,0.7)'};">
-          ${i + 1}. ${escHtml(b.name)}
-        </div>
-      `).join('');
+      $('buzz-order-list').innerHTML = buzzOrder.map((b, i) =>
+        `<span class="chip ${i === 0 ? 'chip-hi' : ''}">${i + 1}. ${escHtml(b.name)}${i > 0 && b.ms != null && buzzOrder[0].ms != null ? ` +${((b.ms - buzzOrder[0].ms) / 1000).toFixed(2)}s` : ''}</span>`).join('');
+      setJudgeEnabled(true, buzzOrder[0]?.name);
     });
 
-    socket.on('answer-correct', ({ players }) => {
-      clearHostTimer();
-      updatePlayerList(players);
-    });
+    socket.on('answer-correct', ({ playerId, players }) => { pickerId = playerId; clearHostTimer(); updatePlayerList(players); });
 
     socket.on('answer-wrong', ({ players }) => {
-      // Next buzzer gets a fresh buzz window
-      if (activeQuestion?.buzzTimeLimit) startHostTimer(activeQuestion.buzzTimeLimit, 'buzz');
       updatePlayerList(players);
+      if (activeQuestion?.dailyDouble) return;
+      if (activeQuestion?.buzzTimeLimit) startHostTimer(activeQuestion.buzzTimeLimit, 'buzz');
+      setJudgeEnabled(false);
+      $('buzz-order-list').innerHTML = '<span class="muted small">Open again — waiting for the next buzz</span>';
     });
 
     socket.on('question-closed', () => {
-      // Refresh mini board by re-requesting game state
-      if (boardData && gameCode) {
-        // Mark the question as answered in local boardData too
-        if (activeQuestion) {
-          const cat = boardData.categories[activeQuestion.catIndex];
-          if (cat) cat.questions[activeQuestion.qIndex].answered = true;
-        }
+      if (boardData && activeQuestion) {
+        const cat = boardData.categories[activeQuestion.catIndex];
+        if (cat) cat.questions[activeQuestion.qIndex].answered = true;
       }
       closeQuestionUI();
       renderMiniBoard();
+      renderNext();
     });
 
     socket.on('final-jeopardy-started', ({ players }) => {
-      gameState = 'final-jeopardy';
+      gameState = 'final-wager';
       clearHostTimer();
-      showFJPanel(players);
-      document.getElementById('active-q-panel').classList.add('hidden');
-    });
-
-    socket.on('fj-wager-received', ({ wageredCount, totalPlayers }) => {
-      fjWagerCount = wageredCount;
-      document.getElementById('fj-wager-count').textContent = wageredCount;
-      document.getElementById('fj-total-players').textContent = totalPlayers;
-    });
-
-    socket.on('fj-answer-result', ({ playerId, wager, players }) => {
+      $('active-q-panel').classList.add('hidden');
       updatePlayerList(players);
-      const item = document.getElementById(`fj-judge-${playerId}`);
-      if (item) {
-        const wagerEl = item.querySelector('.fj-judge-wager');
-        if (wagerEl) wagerEl.textContent = `Wager: $${wager}`;
-      }
+      showFJPanel(players);
+      renderNext();
+    });
+
+    socket.on('fj-wager-received', ({ playerId, wageredCount, totalPlayers }) => {
+      fjWagerCount = wageredCount;
+      fjWagered.add(playerId);
+      $('fj-wager-count').textContent = wageredCount;
+      $('fj-total-players').textContent = totalPlayers;
+      renderWagerChips();
+      renderNext();
+    });
+
+    socket.on('fj-answer-received', ({ playerId, answer }) => {
+      const el = $(`fj-said-${playerId}`);
+      if (el) { el.textContent = `“${answer}”`; el.classList.add('in'); }
+    });
+
+    socket.on('fj-answer-result', ({ playerId, playerName, wager, correct, players }) => {
+      updatePlayerList(players);
+      fjWagersLog = fjWagersLog.filter(w => w.id !== playerId).concat([{ id: playerId, name: playerName, wager, correct }]);
+      const w = $(`fj-judge-${playerId}`)?.querySelector('.fj-judge-wager');
+      if (w) w.textContent = `Wagered $${wager.toLocaleString()} · ${correct ? '+' : '−'}$${wager.toLocaleString()}`;
+      renderNext();
     });
 
     socket.on('game-ended', ({ players }) => {
       gameState = 'ended';
       updatePlayerList(players);
-      document.getElementById('fj-host-panel').classList.add('hidden');
-      document.getElementById('game-over-panel').classList.remove('hidden');
+      $('fj-host-panel').classList.add('hidden');
+      $('mini-board-section').classList.add('hidden');
+      renderRecap(players);
+      $('game-over-panel').classList.remove('hidden');
+      renderNext();
     });
 
     socket.on('game-reset', ({ board, players }) => {
       boardData = board;
       updatePlayerList(players);
-      document.getElementById('game-over-panel').classList.add('hidden');
+      $('game-over-panel').classList.add('hidden');
+      $('mini-board-section').classList.remove('hidden');
       renderMiniBoard();
+      renderNext();
     });
 
-    // ==================== UTILS ====================
-
-    function escHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
+    // ==================== KEYBOARD ====================
+    document.addEventListener('keydown', (e) => {
+      if (!activeQuestion || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'c' && !$('btn-correct').disabled) answerResult(true);
+      else if (k === 'w' && !$('btn-wrong').disabled) answerResult(false);
+      else if (k === 'a') revealAnswer();
+      else if (e.key === 'Escape') dismissQuestion();
+      else return;
+      e.preventDefault();
+    });
 
     // ==================== INIT ====================
 
     buildSetupGrid();
-
-    // Save dialog keyboard handler
-    document.getElementById('save-board-name').addEventListener('keydown', function(e) {
+    renderNext();
+    $('save-board-name').addEventListener('keydown', e => {
       if (e.key === 'Enter') confirmSaveBoard();
       if (e.key === 'Escape') closeSaveDialog();
     });

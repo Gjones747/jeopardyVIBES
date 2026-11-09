@@ -90,7 +90,6 @@
     /* Lobby */
     .lobby { display: grid; grid-template-columns: 1.3fr 1fr; gap: 5vw; align-items: center; }
     .lobby .h1 { font-size: clamp(2.6rem, 6.6vw, 9rem); margin: 2vh 0 3vh; }
-    .lobby .h1 mark { background: none; color: var(--hi); text-shadow: inherit; }
     .lobby .lede { font-size: clamp(1rem, 1.6vw, 2rem); max-width: 26ch; }
     .lobby-join { background: var(--paper); color: var(--ink); border-radius: 2vw; padding: 3vh 2.4vw; display: flex; flex-direction: column; align-items: center; gap: 2vh; }
     .qr-lg { width: min(26vw, 44vh); aspect-ratio: 1; }
@@ -224,8 +223,8 @@
       <div class="lobby">
         <div>
           <span class="wm" style="font-size:clamp(1.4rem,2.4vw,3rem);">jeopardy<b>VIBES</b></span>
-          <h1 class="h1">Phones out.<br>It's <mark>trivia night</mark>.</h1>
-          <p class="lede">Scan the code or type the address, enter the room code, and you're in. We start when the host says go.</p>
+          <h1 class="h1">Join the game</h1>
+          <p class="lede">Scan the code, or go to the address and enter the room code.</p>
           <div class="lobby-players" id="lobby-players"></div>
         </div>
         <div class="lobby-join">

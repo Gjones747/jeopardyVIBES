@@ -47,6 +47,7 @@ There are four views:
 | --- | --- |
 | ![TV board](docs/screenshots/tv-board.png) | ![Phone buzzer](docs/screenshots/phone-buzzer.png) |
 | ![Host panel](docs/screenshots/host-judging.png) | ![Finale](docs/screenshots/tv-finale.png) |
+| ![Board builder](docs/screenshots/host-build.png) | ![TV lobby](docs/screenshots/tv-lobby.png) |
 
 ## Running a Game
 

@@ -314,7 +314,7 @@
         $('player-name-header').textContent = myName;
         $('room-code-display').textContent = code;
         updateLeaderboard(res.game.players);
-        if (res.game.state === 'lobby') setWaiting("You're in.", "Hang tight — the host will start the game soon. Your buzzer lights up here when a clue goes up.");
+        if (res.game.state === 'lobby') setWaiting("You're in", "Waiting for the host to start.");
         else setWaiting("You're in.", 'Game in progress. Your buzzer lights up on the next clue.');
         if (res.game.state === 'question-active' && res.game.activeQuestion && !res.game.activeQuestion.dailyDouble) {
           setQuestionActive(true);

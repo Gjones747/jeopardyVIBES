@@ -16,17 +16,13 @@
     .landing-top { display: flex; justify-content: space-between; align-items: center; }
     .landing-body {
       flex: 1;
-      display: grid;
-      grid-template-columns: 1.15fr 1fr;
-      gap: 64px;
-      align-items: center;
+      width: 100%; max-width: 440px; margin: 0 auto;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 28px;
       padding: 48px 0;
     }
-    .pitch .h1 { font-size: clamp(2.6rem, 6.4vw, 5.2rem); margin: 14px 0 20px; }
-    .pitch .h1 mark { background: none; color: var(--hi); }
-    .pitch .lede { max-width: 30ch; }
-    .how { margin-top: 28px; color: var(--muted); font-weight: 500; }
-    .how span { color: var(--hi); margin: 0 4px; }
+    .pitch .h1 { font-size: clamp(2.4rem, 5vw, 4rem); margin: 0 0 16px; }
+    .pitch .lede { max-width: 34ch; }
     .join-card { padding: 0; background: none; border: none; border-radius: 0; display: flex; flex-direction: column; gap: 16px; }
     .join-card input { background: var(--ink-2); }
     .join-card .h2 { font-size: 1.6rem; }
@@ -38,9 +34,8 @@
 
     @media (max-width: 860px) {
       .landing { padding: 18px 16px 28px; }
-      .landing-body { grid-template-columns: 1fr; gap: 28px; padding: 28px 0; align-items: start; }
-      .pitch .h1 { margin: 10px 0 12px; }
-      .how { display: none; }
+      .landing-body { justify-content: flex-start; gap: 24px; padding: 32px 0; }
+      .pitch .h1 { margin: 0 0 10px; }
     }
   </style>
 </head>
@@ -48,39 +43,34 @@
   <main class="landing">
     <header class="landing-top">
       <a class="wm" href="/">jeopardy<b>VIBES</b></a>
-      <span class="chip">Thursdays · 8:30 pm</span>
     </header>
 
     <section class="landing-body">
       <div class="pitch">
-        <div class="eyebrow">Dorm trivia night</div>
-        <h1 class="h1">Grab your phone.<br>You're the <mark>buzzer</mark>.</h1>
-        <p class="lede">Type the room code from the TV, put your name in, and get ready to be wrong in front of your friends.</p>
-        <p class="how">Code from the TV <span>→</span> your name <span>→</span> slam the buzzer.</p>
+        <h1 class="h1">Join a game</h1>
+        <p class="lede">Enter the room code shown on the TV and your name.</p>
       </div>
 
       <div>
         <form class="card join-card" onsubmit="event.preventDefault(); joinGame();">
-          <div class="h2">Join a game</div>
           <div>
             <label for="roomCode">Room code</label>
             <input type="text" id="roomCode" placeholder="ABCD" maxlength="4" class="code-input" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
           </div>
           <div>
             <label for="playerName">Your name</label>
-            <input type="text" id="playerName" placeholder="What should the TV call you?" maxlength="20" autocomplete="off">
+            <input type="text" id="playerName" placeholder="Your name" maxlength="20" autocomplete="off">
           </div>
           <button type="submit" class="btn btn-primary btn-lg btn-block">Join game</button>
           <div id="join-error" class="field-error" role="alert"></div>
         </form>
 
-        <a href="/host.html" class="host-link">Running it tonight? <b>Set up the board on your laptop</b></a>
+        <a href="/host.html" class="host-link">Hosting? <b>Set up a game</b></a>
       </div>
     </section>
 
     <footer class="landing-foot">
       <span>Everyone needs to be on the same Wi-Fi.</span>
-      <span>Board on the TV · host on a laptop · buzzers on phones</span>
     </footer>
   </main>
 

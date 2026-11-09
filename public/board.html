@@ -574,6 +574,11 @@
       hideQuestionOverlay();
     });
 
+    socket.on('board-updated', ({ board }) => {
+      if (gameData) gameData.board = board;
+      renderBoard(board);
+    });
+
     socket.on('game-reset', ({ board, players }) => {
       if (gameData) gameData.board = board;
       renderBoard(board);

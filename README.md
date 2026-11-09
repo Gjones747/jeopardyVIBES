@@ -52,7 +52,7 @@ There are four views:
 ## Running a Game
 
 1. Open `/host.html` on your device
-2. Build a board or load a preset, then click **Open a room**
+2. Pick a board from **Boards** (or write your own), then click **Open a room**
 3. Click **Open TV display** and put that window on the TV. It shows a QR code and the room code
 4. Players scan the QR code (or open `/` on their phones) and enter their name and the room code
 5. Click **Start game** in the host panel
@@ -66,8 +66,13 @@ The TV figures out your machine's LAN address for the join link and QR code. Fon
 
 - Six categories, five clues each ($200 - $1000)
 - Tap **DD** on any clue to make it the Daily Double (only the host sees it)
-- Save and reload boards using local storage
-- Four built-in presets: Easy / Family Night, Medium / General, Hard / Expert, College Night
+- Name the board at the top and click **Save** (or ⌘/Ctrl+S). Saving again updates the same board; the status next to the name shows **Saved** or **Unsaved changes**
+- Everything you type is also kept as a draft in the browser, so a reload or closed tab doesn't lose work
+- **Boards** opens your saved boards (open, duplicate, delete with undo) and four starter boards: Family night, General knowledge, Expert, College night. A starter opens as a new unsaved copy
+- You're asked before anything replaces unsaved changes
+- **Export this board** / **Import from file** move a board to another computer as a `.json` file
+- **Open a room** warns you if any clues are empty and outlines them on the grid
+- During a game, **Edit board** lets you fix clues and send them to the TV with **Update the TV**. Played clues stay played and scores don't change
 
 ## Daily Double
 

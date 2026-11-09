@@ -58,8 +58,42 @@
 
     /* ---------- Builder ---------- */
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
-    .toolbar select { width: auto; height: 34px; padding: 0 32px 0 12px; font-size: 0.85rem; }
     .toolbar .progress { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.85rem; }
+    .board-id { display: flex; align-items: center; gap: 12px; flex: 1 1 320px; min-width: 0; }
+    .board-name { font-family: var(--display) !important; font-weight: 600; font-size: 1.5rem !important; text-transform: uppercase; letter-spacing: 0.01em;
+      background: transparent !important; border: 1px solid transparent !important; padding: 2px 8px !important; margin-left: -8px; width: auto !important; field-sizing: content; min-width: 8ch; max-width: min(520px, 100%); flex: 0 1 auto; }
+    .board-name:hover { border-color: var(--line) !important; }
+    .board-name:focus { border-color: var(--hi) !important; background: var(--ink-2) !important; }
+    .save-state { font-size: 0.8rem; font-weight: 600; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+    .save-state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+    .save-state.dirty { color: var(--warn); }
+    .save-state.dirty::before { background: var(--warn); }
+    .save-state.new::before { background: var(--faint); }
+    .toolbar-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .start-strip { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; margin-bottom: 14px; }
+    .start-strip .t { flex: 1 1 260px; color: var(--paper-2); }
+    .start-strip .t b { color: var(--paper); }
+    .live-strip { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid var(--hi); border-radius: var(--r); padding: 12px 14px; margin-bottom: 14px; }
+    .live-strip .t { flex: 1 1 260px; color: var(--paper-2); font-size: 0.9rem; }
+    .live-strip .t b { color: var(--paper); }
+    .q-cell.missing { border-color: var(--warn); border-style: dashed; }
+
+    /* Library */
+    .library { max-width: 720px !important; max-height: min(86vh, 860px); overflow: auto; }
+    .lib-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .lib-sec { display: flex; flex-direction: column; gap: 8px; }
+    .lib-sec > .eyebrow { margin-top: 4px; }
+    .lib-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: var(--ink); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+    .lib-item.current { border-color: var(--hi); }
+    .lib-item .nm { font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .lib-item .meta { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+    .lib-item .acts { display: flex; gap: 6px; }
+    .lib-empty { color: var(--muted); font-size: 0.9rem; padding: 6px 0; }
+    .lib-foot { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+    .lib-warn { background: rgba(255,165,58,0.1); border: 1px solid rgba(255,165,58,0.45); color: var(--paper); border-radius: var(--r); padding: 10px 12px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .lib-warn span { flex: 1 1 200px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--paper); color: var(--ink); font-weight: 700; padding: 10px 16px; border-radius: var(--r); z-index: 1200; display: flex; gap: 12px; align-items: center; animation: rise 0.2s ease-out; }
+    .toast button { background: none; border: none; color: var(--board); font: 700 0.95rem var(--ui); cursor: pointer; text-decoration: underline; }
     .progress-bar { width: 120px; height: 6px; background: var(--ink-3); border-radius: 99px; overflow: hidden; }
     .progress-bar span { display: block; height: 100%; background: var(--hi); border-radius: 99px; transition: width 0.2s; }
 
@@ -88,8 +122,6 @@
     .fj-setup { margin-top: 18px; display: grid; grid-template-columns: 1fr 2fr 1.4fr; gap: 12px; align-items: end; }
     .card-title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 
-    .saved-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-    .saved-item:last-child { border-bottom: none; }
 
     /* ---------- Game console ---------- */
     .console { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px; margin-bottom: 20px; animation: rise 0.2s ease-out; }
@@ -241,27 +273,32 @@
 
       <!-- ===== SETUP ===== -->
       <section class="section active" id="section-setup">
+        <div id="live-strip" class="live-strip hidden">
+          <div class="t" id="live-text"><b>Editing the live board.</b> Fix typos or swap clues, then send the changes to the TV. Played clues stay played and scores don't change.</div>
+          <button class="btn btn-sm btn-ghost" onclick="showSection('game')">← Back to game</button>
+          <button class="btn btn-sm btn-primary" id="apply-live-btn" onclick="applyToLiveGame()" disabled>Update the TV</button>
+        </div>
+
+        <div class="toolbar-row">
+          <div class="board-id">
+            <input type="text" id="board-name" class="board-name" placeholder="Untitled board" maxlength="60" aria-label="Board name" spellcheck="false">
+            <span class="save-state new" id="save-state">Not saved</span>
+          </div>
+          <button class="btn btn-sm" onclick="openLibrary()">Boards</button>
+          <button class="btn btn-sm" id="new-btn" onclick="newBoard()">New</button>
+          <button class="btn btn-sm btn-primary" id="save-btn" onclick="saveBoard()">Save</button>
+        </div>
+
+        <div id="start-strip" class="start-strip hidden">
+          <div class="t"><b>Start from something?</b> Pick a starter board or one you saved, or just type into the grid.</div>
+          <button class="btn btn-sm btn-primary" onclick="openLibrary()">Browse boards</button>
+        </div>
+
         <div class="toolbar">
-          <button class="btn btn-sm btn-primary hidden" id="back-to-game" onclick="showSection('game')">← Back to game</button>
-          <select id="preset-select" onchange="loadPreset(this.value)" aria-label="Load a preset board">
-            <option value="">Load a preset…</option>
-            <option value="easy">Easy · Family night</option>
-            <option value="medium">Medium · General</option>
-            <option value="hard">Hard · Expert</option>
-            <option value="college">College night</option>
-          </select>
-          <button class="btn btn-sm" onclick="showSaved()">Saved boards</button>
-          <button class="btn btn-sm" onclick="saveBoard()">Save</button>
-          <button class="btn btn-sm btn-danger" onclick="clearBoard()">Clear all</button>
+          <p class="builder-note" style="margin:0;">Tap <b>DD</b> on any clue to hide the Daily Double there. Only you can see it.</p>
           <div class="progress"><span id="fill-count">0 of 30 clues</span><div class="progress-bar"><span id="fill-bar" style="width:0%"></span></div></div>
         </div>
 
-        <div id="saved-panel" class="card hidden" style="margin-bottom:16px;">
-          <div class="sec-title"><span class="h2" style="font-size:1.1rem;">Saved boards</span><button class="btn btn-sm btn-ghost" onclick="hideSaved()">Close</button></div>
-          <div id="saved-list"></div>
-        </div>
-
-        <p class="builder-note">Tap <b>DD</b> on any clue to hide the Daily Double there. Only you can see it.</p>
         <div class="setup-grid" id="setup-grid"></div>
 
         <div class="card" style="margin-top:18px;">
@@ -374,17 +411,47 @@
     </main>
   </div>
 
-  <!-- Save dialog -->
-  <div id="save-dialog" class="dialog-scrim hidden">
+  <!-- Save dialog (only when the board has no name yet) -->
+  <div id="save-dialog" class="dialog-scrim hidden" onclick="if (event.target === this) closeSaveDialog()">
     <div class="dialog" role="dialog" aria-labelledby="save-title">
-      <div class="h2" id="save-title">Save this board</div>
+      <div class="h2" id="save-title">Name this board</div>
       <div><label for="save-board-name">Name</label><input type="text" id="save-board-name" placeholder="Game night #3" maxlength="60"></div>
+      <p class="muted small">Boards save in this browser. Use Export in Boards to move one to another computer.</p>
       <div class="dialog-actions">
         <button class="btn btn-ghost" onclick="closeSaveDialog()">Cancel</button>
         <button class="btn btn-primary" onclick="confirmSaveBoard()">Save</button>
       </div>
     </div>
   </div>
+
+  <!-- Board library -->
+  <div id="library" class="dialog-scrim hidden" onclick="if (event.target === this) closeLibrary()">
+    <div class="dialog library" role="dialog" aria-labelledby="lib-title">
+      <div class="lib-head"><div class="h2" id="lib-title">Boards</div><button class="btn btn-sm btn-ghost" onclick="closeLibrary()">Close</button></div>
+      <div id="lib-warn" class="lib-warn hidden"><span>You have unsaved changes to <b id="lib-warn-name"></b>. Opening another board replaces them.</span><button class="btn btn-sm" onclick="saveBoard(); renderLibrary();">Save first</button></div>
+      <div class="lib-sec"><div class="eyebrow">Your boards</div><div id="lib-mine"></div></div>
+      <div class="lib-sec"><div class="eyebrow">Starter boards</div><div id="lib-starters"></div></div>
+      <div class="lib-foot">
+        <button class="btn btn-sm" onclick="$('import-file').click()">Import from file…</button>
+        <button class="btn btn-sm" onclick="exportBoard()">Export this board</button>
+        <input type="file" id="import-file" accept=".json,application/json" class="hidden" onchange="importBoard(this)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm dialog -->
+  <div id="confirm" class="dialog-scrim hidden">
+    <div class="dialog" role="alertdialog" aria-labelledby="confirm-title">
+      <div class="h2" id="confirm-title"></div>
+      <p class="muted" id="confirm-text"></p>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" id="confirm-no"></button>
+        <button class="btn btn-primary" id="confirm-yes"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"><span id="toast-text"></span><button id="toast-undo" class="hidden">Undo</button></div>
 
   <script src="/presets.js"></script>
   <script src="/awards.js"></script>
@@ -430,7 +497,9 @@
       if (gameState === 'setup') {
         const filled = countFilled();
         title = 'Build your board';
-        text = filled === 30 ? 'All 30 clues are in. Open a room and get people joining.' : `${filled} of 30 clues filled. Load a preset or keep writing — empty clues show as “(empty)”.`;
+        text = filled === 30 ? 'All 30 clues are in. Open a room and get people joining.'
+             : filled === 0 ? 'Pick a board from Boards, or type clues into the grid.'
+             : `${filled} of 30 clues filled. Your work is kept in this browser as you type.`;
         btns = `<button class="btn btn-primary btn-lg btn-block" id="create-btn" onclick="createGame()">Open a room</button>`;
       } else if (gameState === 'lobby') {
         title = n ? `${n} player${n === 1 ? '' : 's'} in` : 'Get people joining';
@@ -530,7 +599,6 @@
           grid.appendChild(div);
         }
       });
-      grid.addEventListener('input', refreshFill);
       refreshFill();
     }
 
@@ -548,11 +616,15 @@
         if (!cell) continue;
         cell.classList.toggle('filled', !!($(`clue-${c}-${r}`).value.trim() && $(`answer-${c}-${r}`).value.trim()));
         cell.classList.toggle('dd', $(`dd-${c}-${r}`).checked);
+        if (cell.classList.contains('filled')) cell.classList.remove('missing');
       }
       const n = countFilled();
       $('fill-count').textContent = `${n} of 30 clues`;
       $('fill-bar').style.width = (n / 30 * 100) + '%';
+      const blank = n === 0 && !isTouched();
+      $('start-strip').classList.toggle('hidden', !blank || !!gameCode);
       if (gameState === 'setup') renderNext();
+      refreshSaveState();
     }
 
     function handleDDChange(catIdx, qIdx) {
@@ -601,55 +673,260 @@
       refreshFill();
     }
 
-    function loadPreset(key) {
-      if (!key || !PRESETS[key]) return;
-      loadBoardData(PRESETS[key]);
-      $('preset-select').value = '';
-    }
-
-    function clearBoard() {
-      if (countFilled() && !confirm('Clear every clue on this board?')) return;
-      buildSetupGrid();
+    function clearGrid() {
+      for (let c = 0; c < NUM_CATS; c++) {
+        $(`cat-name-${c}`).value = '';
+        for (let r = 0; r < VALUES.length; r++) { $(`clue-${c}-${r}`).value = ''; $(`answer-${c}-${r}`).value = ''; $(`dd-${c}-${r}`).checked = false; }
+      }
       ['fj-setup-cat', 'fj-setup-clue', 'fj-setup-answer'].forEach(id => $(id).value = '');
+      document.querySelectorAll('.q-cell.missing').forEach(el => el.classList.remove('missing'));
+    }
+    function isTouched() {
+      if ($('board-name').value.trim()) return true;
+      for (let c = 0; c < NUM_CATS; c++) {
+        if ($(`cat-name-${c}`).value.trim()) return true;
+        for (let r = 0; r < VALUES.length; r++) if ($(`clue-${c}-${r}`).value.trim() || $(`answer-${c}-${r}`).value.trim()) return true;
+      }
+      return !!($('fj-setup-cat').value.trim() || $('fj-setup-clue').value.trim());
     }
 
-    // ==================== SAVE / LOAD ====================
+    // ==================== BOARD LIBRARY ====================
+    // One "current board": its saved id (null = never saved), and a snapshot of
+    // what was last saved so we can tell the host when there are unsaved changes.
+    // Everything typed is also kept as a draft, so a reload never loses work.
 
-    function readSaved() { try { return JSON.parse(localStorage.getItem('jeopardy-boards') || '[]'); } catch (e) { return []; } }
-    function writeSaved(b) { try { localStorage.setItem('jeopardy-boards', JSON.stringify(b)); } catch (e) {} }
+    let current = { id: null, savedSnap: null };
+    let liveSnap = null;          // board as last sent to the live game
+    const snap = () => JSON.stringify({ n: $('board-name').value.trim(), d: getBoardData() });
+    const boardSnap = () => JSON.stringify(getBoardData());
+    const isDirty = () => current.savedSnap === null ? isTouched() : snap() !== current.savedSnap;
 
+    function readSaved() {
+      try {
+        const list = JSON.parse(localStorage.getItem('jeopardy-boards') || '[]');
+        let changed = false;
+        list.forEach(b => { if (!b.id) { b.id = 'b' + Math.random().toString(36).slice(2, 10); changed = true; } });
+        if (changed) writeSaved(list);
+        return list;
+      } catch (e) { return []; }
+    }
+    function writeSaved(b) { try { localStorage.setItem('jeopardy-boards', JSON.stringify(b)); return true; } catch (e) { return false; } }
+
+    let draftTimer = null;
+    function flushDraft() {
+      clearTimeout(draftTimer);
+      try { localStorage.setItem('jeopardy-draft', JSON.stringify({ id: current.id, savedSnap: current.savedSnap, name: $('board-name').value, data: getBoardData() })); } catch (e) {}
+    }
+    function writeDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(flushDraft, 300); }
+
+    function refreshSaveState() {
+      const el = $('save-state');
+      const dirty = isDirty();
+      el.classList.toggle('dirty', dirty && current.id !== null);
+      el.classList.toggle('new', current.id === null);
+      el.textContent = current.id === null ? (isTouched() ? 'Not saved yet' : 'Not saved') : dirty ? 'Unsaved changes' : 'Saved';
+      $('save-btn').disabled = current.id !== null && !dirty;
+      $('save-btn').classList.toggle('btn-primary', !$('save-btn').disabled);
+      $('new-btn').classList.toggle('hidden', !!gameCode);
+      if (gameCode) {
+        const pending = liveSnap !== null && boardSnap() !== liveSnap;
+        $('apply-live-btn').disabled = !pending;
+        $('apply-live-btn').textContent = pending ? 'Update the TV' : 'TV is up to date';
+      }
+      writeDraft();
+    }
+
+    function setCurrent(id, name, data) {
+      clearGrid();
+      $('board-name').value = name || '';
+      if (data) loadBoardData(data);
+      current = { id, savedSnap: null };
+      if (id) current.savedSnap = snap();
+      refreshFill();
+    }
+
+    // Ask before throwing away unsaved work. Resolves true to continue.
+    function confirmBox({ title, text, yes, no = 'Cancel' }) {
+      return new Promise(resolve => {
+        $('confirm-title').textContent = title;
+        $('confirm-text').textContent = text;
+        $('confirm-yes').textContent = yes;
+        $('confirm-no').textContent = no;
+        $('confirm').classList.remove('hidden');
+        const done = v => { $('confirm').classList.add('hidden'); $('confirm-yes').onclick = $('confirm-no').onclick = null; resolve(v); };
+        $('confirm-yes').onclick = () => done(true);
+        $('confirm-no').onclick = () => done(false);
+        setTimeout(() => $('confirm-no').focus(), 30);
+      });
+    }
+    async function okToReplace() {
+      if (!isDirty()) return true;
+      const name = $('board-name').value.trim() || 'this board';
+      return confirmBox({ title: 'Discard unsaved changes?', text: `Your changes to “${name}” haven't been saved. They'll be replaced.`, yes: 'Discard changes', no: 'Keep editing' });
+    }
+
+    let toastTimer = null;
+    function toast(msg, undo) {
+      $('toast-text').textContent = msg;
+      $('toast-undo').classList.toggle('hidden', !undo);
+      $('toast-undo').onclick = () => { $('toast').classList.add('hidden'); undo && undo(); };
+      $('toast').classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $('toast').classList.add('hidden'), undo ? 6000 : 2200);
+    }
+
+    // ---- Save ----
     function saveBoard() {
-      $('save-board-name').value = '';
-      $('save-dialog').classList.remove('hidden');
-      setTimeout(() => $('save-board-name').focus(), 50);
+      const name = $('board-name').value.trim();
+      if (!name) {
+        $('save-board-name').value = '';
+        $('save-dialog').classList.remove('hidden');
+        setTimeout(() => $('save-board-name').focus(), 50);
+        return;
+      }
+      const boards = readSaved();
+      const entry = { id: current.id, name, data: getBoardData(), saved: Date.now() };
+      const i = current.id ? boards.findIndex(b => b.id === current.id) : -1;
+      if (i >= 0) boards[i] = entry;
+      else { entry.id = 'b' + Math.random().toString(36).slice(2, 10); boards.unshift(entry); }
+      if (!writeSaved(boards)) { toast('Could not save. Browser storage is full or blocked.'); return; }
+      current = { id: entry.id, savedSnap: snap() };
+      refreshSaveState();
+      flushDraft();
+      toast(i >= 0 ? 'Saved' : `Saved “${name}”`);
     }
     function closeSaveDialog() { $('save-dialog').classList.add('hidden'); }
     function confirmSaveBoard() {
       const name = $('save-board-name').value.trim();
       if (!name) { $('save-board-name').focus(); return; }
-      const boards = readSaved();
-      boards.push({ name, data: getBoardData(), saved: new Date().toLocaleDateString() });
-      writeSaved(boards);
+      $('board-name').value = name;
       closeSaveDialog();
+      saveBoard();
     }
-    function showSaved() {
+
+    async function newBoard() {
+      if (!(await okToReplace())) return;
+      setCurrent(null, '', null);
+      closeLibrary();
+      $('board-name').focus();
+    }
+
+    // ---- Library ----
+    const fmtDate = t => { const d = new Date(t); return isNaN(d) ? (t || '') : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+    const filledIn = data => data.categories.reduce((n, c) => n + c.questions.filter(q => q.clue && q.clue !== '(empty)' && q.answer && q.answer !== '(none)').length, 0);
+    const catsOf = data => data.categories.map(c => c.name).filter(Boolean).slice(0, 4).join(', ') + (data.categories.length > 4 ? '…' : '');
+    const STARTERS = [
+      { key: 'easy', name: 'Family night', level: 'Easy' },
+      { key: 'medium', name: 'General knowledge', level: 'Medium' },
+      { key: 'hard', name: 'Expert', level: 'Hard' },
+      { key: 'college', name: 'College night', level: 'Medium' },
+    ];
+
+    function openLibrary() { renderLibrary(); $('library').classList.remove('hidden'); }
+    function closeLibrary() { $('library').classList.add('hidden'); }
+    function renderLibrary() {
+      const dirty = isDirty();
+      $('lib-warn').classList.toggle('hidden', !dirty);
+      $('lib-warn-name').textContent = $('board-name').value.trim() || 'this board';
       const boards = readSaved();
-      $('saved-list').innerHTML = boards.length ? boards.map((b, i) => `
-        <div class="saved-item">
-          <div style="flex:1;"><div style="font-weight:600;">${escHtml(b.name)}</div><div class="muted small">${b.saved || ''}</div></div>
-          <button class="btn btn-sm" onclick="loadSaved(${i})">Load</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteSaved(${i})">Delete</button>
-        </div>`).join('') : '<div class="muted small">Nothing saved yet. Boards save to this browser.</div>';
-      $('saved-panel').classList.remove('hidden');
+      $('lib-mine').innerHTML = boards.length ? boards.map(b => `
+        <div class="lib-item ${b.id === current.id ? 'current' : ''}">
+          <div>
+            <div class="nm">${escHtml(b.name)}${b.id === current.id ? '<span class="chip chip-hi">Open now</span>' : ''}</div>
+            <div class="meta">${filledIn(b.data)} of 30 clues · ${escHtml(catsOf(b.data))}${b.saved ? ' · saved ' + fmtDate(b.saved) : ''}</div>
+          </div>
+          <div class="acts">
+            ${b.id === current.id ? '' : `<button class="btn btn-sm btn-primary" onclick="openSaved('${b.id}')">Open</button>`}
+            <button class="btn btn-sm" onclick="duplicateSaved('${b.id}')">Duplicate</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteSaved('${b.id}')" aria-label="Delete ${escHtml(b.name)}">Delete</button>
+          </div>
+        </div>`).join('') : '<div class="lib-empty">Nothing saved yet. Name your board and hit Save, and it shows up here.</div>';
+      $('lib-starters').innerHTML = STARTERS.filter(s => PRESETS[s.key]).map(s => `
+        <div class="lib-item">
+          <div>
+            <div class="nm">${s.name} <span class="chip">${s.level}</span></div>
+            <div class="meta">${escHtml(catsOf(PRESETS[s.key]))}</div>
+          </div>
+          <div class="acts"><button class="btn btn-sm" onclick="useStarter('${s.key}')">Use this</button></div>
+        </div>`).join('');
     }
-    function hideSaved() { $('saved-panel').classList.add('hidden'); }
-    function loadSaved(i) { const b = readSaved()[i]; if (b) { loadBoardData(b.data); hideSaved(); } }
-    function deleteSaved(i) { const b = readSaved(); b.splice(i, 1); writeSaved(b); showSaved(); }
+
+    async function openSaved(id) {
+      const b = readSaved().find(x => x.id === id);
+      if (!b || !(await okToReplace())) return;
+      setCurrent(b.id, b.name, b.data);
+      closeLibrary();
+      toast(`Opened “${b.name}”`);
+    }
+    async function useStarter(key) {
+      if (!PRESETS[key] || !(await okToReplace())) return;
+      const s = STARTERS.find(x => x.key === key);
+      // A starter is a template: it opens as a new, unsaved board.
+      setCurrent(null, s ? s.name : '', PRESETS[key]);
+      closeLibrary();
+      toast('Loaded a starter board. Save it to keep your edits.');
+    }
+    function duplicateSaved(id) {
+      const boards = readSaved();
+      const b = boards.find(x => x.id === id);
+      if (!b) return;
+      const copy = { ...JSON.parse(JSON.stringify(b)), id: 'b' + Math.random().toString(36).slice(2, 10), name: `${b.name} (copy)`, saved: Date.now() };
+      boards.splice(boards.indexOf(b) + 1, 0, copy);
+      writeSaved(boards);
+      renderLibrary();
+    }
+    function deleteSaved(id) {
+      const boards = readSaved();
+      const i = boards.findIndex(x => x.id === id);
+      if (i < 0) return;
+      const [gone] = boards.splice(i, 1);
+      writeSaved(boards);
+      if (current.id === id) { current = { id: null, savedSnap: null }; refreshSaveState(); }
+      renderLibrary();
+      toast(`Deleted “${gone.name}”`, () => {
+        const list = readSaved(); list.splice(Math.min(i, list.length), 0, gone); writeSaved(list);
+        if (!current.id && $('board-name').value.trim() === gone.name) { current = { id: gone.id, savedSnap: null }; current.savedSnap = snap(); refreshSaveState(); }
+        if (!$('library').classList.contains('hidden')) renderLibrary();
+      });
+    }
+
+    // ---- Import / export (move boards between computers) ----
+    function exportBoard() {
+      const name = $('board-name').value.trim() || 'jeopardy-board';
+      const blob = new Blob([JSON.stringify({ name, ...getBoardData() }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() + '.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    async function importBoard(input) {
+      const file = input.files[0];
+      input.value = '';
+      if (!file) return;
+      let data;
+      try { data = JSON.parse(await file.text()); } catch (e) { toast('That file isn’t a board export.'); return; }
+      if (!data || !Array.isArray(data.categories)) { toast('That file isn’t a board export.'); return; }
+      if (!(await okToReplace())) return;
+      setCurrent(null, data.name || file.name.replace(/\.json$/i, ''), data);
+      closeLibrary();
+      toast('Imported. Save it to keep it in this browser.');
+    }
 
     // ==================== GAME MANAGEMENT ====================
 
-    function createGame() {
+    async function createGame() {
+      const filled = countFilled();
+      if (filled < 30) {
+        markMissing();
+        const ok = await confirmBox({
+          title: `${30 - filled} clue${30 - filled === 1 ? ' is' : 's are'} still empty`,
+          text: filled === 0 ? 'The board is blank. Pick a board from Boards, or write some clues first.' : 'Empty clues show as “(empty)” on the TV. They’re outlined on the grid. You can still fix them after the room is open.',
+          yes: filled === 0 ? 'Open anyway' : 'Open the room anyway', no: 'Keep editing' });
+        if (!ok) return;
+      }
       boardData = getBoardData();
+      liveSnap = JSON.stringify(boardData);
       socket.emit('create-game', boardData, (res) => {
         if (res.error) { alert(res.error); return; }
         gameCode = res.code;
@@ -664,6 +941,25 @@
         showSection('game');
         renderMiniBoard();
         renderNext();
+      });
+    }
+
+    function markMissing() {
+      for (let c = 0; c < NUM_CATS; c++) for (let r = 0; r < VALUES.length; r++) {
+        const ok = $(`clue-${c}-${r}`).value.trim() && $(`answer-${c}-${r}`).value.trim();
+        $(`qc-${c}-${r}`).classList.toggle('missing', !ok);
+      }
+    }
+
+    function applyToLiveGame() {
+      const data = getBoardData();
+      socket.emit('update-board', data, (res) => {
+        if (!res || res.error) { toast('Couldn’t update the game.'); return; }
+        boardData = res.board;
+        liveSnap = JSON.stringify(data);
+        renderMiniBoard();
+        refreshSaveState();
+        toast('The TV has the new board');
       });
     }
 
@@ -686,7 +982,9 @@
     }
 
     function resetGame() {
-      socket.emit('reset-game', getBoardData());
+      const data = getBoardData();
+      liveSnap = JSON.stringify(data);
+      socket.emit('reset-game', data);
       gameState = 'playing';
       activeQuestion = null;
       fjWagersLog = [];
@@ -940,7 +1238,8 @@
       $(`nav-${name}`).classList.add('active');
       // Once a room exists the stepper is the navigation; the builder is a side trip.
       $('tabs').classList.toggle('hidden', !!gameCode);
-      $('back-to-game').classList.toggle('hidden', !gameCode);
+      $('live-strip').classList.toggle('hidden', !gameCode);
+      if (name === 'setup') refreshFill();
     }
 
     // ==================== SOCKET EVENTS ====================
@@ -1059,11 +1358,30 @@
     // ==================== INIT ====================
 
     buildSetupGrid();
+    $('section-setup').addEventListener('input', refreshFill);
+    try {
+      const d = JSON.parse(localStorage.getItem('jeopardy-draft') || 'null');
+      if (d && d.data) {
+        $('board-name').value = d.name || '';
+        loadBoardData(d.data);
+        // Only trust the saved id if that board still exists.
+        current = { id: d.id && readSaved().some(b => b.id === d.id) ? d.id : null, savedSnap: d.savedSnap || null };
+        if (!current.id) current.savedSnap = null;
+      }
+    } catch (e) {}
+    refreshFill();
     renderNext();
     $('save-board-name').addEventListener('keydown', e => {
       if (e.key === 'Enter') confirmSaveBoard();
       if (e.key === 'Escape') closeSaveDialog();
     });
+    $('board-name').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's' && $('section-setup').classList.contains('active')) { e.preventDefault(); if (!$('save-btn').disabled) saveBoard(); }
+      if (e.key === 'Escape') { closeLibrary(); }
+    });
+    window.addEventListener('pagehide', flushDraft);
+    window.addEventListener('beforeunload', e => { if (gameCode) { e.preventDefault(); e.returnValue = ''; } });
   </script>
 </body>
 </html>

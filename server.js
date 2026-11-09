@@ -399,6 +399,28 @@ io.on('connection', (socket) => {
 
   // ==================== RESET / DISCONNECT ====================
 
+  // Host edited the board mid-game: take the new text, keep what's been played.
+  socket.on('update-board', (boardData, callback) => {
+    const game = getHostGame(socket);
+    if (!game || !boardData || !Array.isArray(boardData.categories)) return callback && callback({ error: 'No game' });
+    boardData.categories.forEach((cat, c) => {
+      const live = game.board.categories[c];
+      if (!live) return;
+      live.name = cat.name;
+      cat.questions.forEach((q, r) => {
+        const lq = live.questions[r];
+        if (!lq) return;
+        const isActive = game.activeQuestion && game.activeQuestion.catIndex === c && game.activeQuestion.qIndex === r;
+        if (isActive) return;
+        lq.clue = q.clue; lq.answer = q.answer;
+        if (!lq.answered) lq.dailyDouble = !!q.dailyDouble;
+      });
+    });
+    if (boardData.finalJeopardy) game.board.finalJeopardy = boardData.finalJeopardy;
+    io.to(game.code).emit('board-updated', { board: game.board });
+    callback && callback({ success: true, board: game.board });
+  });
+
   socket.on('reset-game', (boardData) => {
     const game = getHostGame(socket);
     if (!game) return;

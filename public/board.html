@@ -3,544 +3,566 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jeopardy! Board</title>
+  <title>jeopardyVIBES · Board</title>
   <link rel="stylesheet" href="/style.css">
   <style>
-    body { overflow: hidden; }
+    /* The TV is 10 feet away: everything is sized off the viewport. */
+    html, body { height: 100%; overflow: hidden; }
 
-    .ov-top-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 40px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-
-  .board-timer {
-    position: relative;
-    width: 100px;
-    height: 100px;
-    flex-shrink: 0;
-  }
-
-  .timer-ring {
-    width: 100px;
-    height: 100px;
-    transform: rotate(-90deg);
-  }
-
-  .timer-ring-bg {
-    fill: none;
-    stroke: rgba(255,255,255,0.15);
-    stroke-width: 6;
-  }
-
-  .timer-ring-fill {
-    fill: none;
-    stroke: #4ade80;
-    stroke-width: 6;
-    stroke-linecap: round;
-    stroke-dasharray: 213.6;
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
-  }
-
-  .timer-inner {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-  }
-
-  .timer-num {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
-    font-weight: 700;
-    color: white;
-    line-height: 1;
-  }
-
-  .timer-label {
-    font-size: clamp(0.45rem, 1vw, 0.65rem);
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.6);
-    text-transform: uppercase;
-  }
-
-  .board-buzz-order {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 24px;
-  }
-
-  .board-buzz-item {
-    background: rgba(255,255,255,0.1);
-    border: 2px solid rgba(255,255,255,0.2);
-    border-radius: 10px;
-    padding: 10px 22px;
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(0.9rem, 1.8vw, 1.3rem);
-    color: rgba(255,255,255,0.7);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .board-buzz-item.first {
-    background: rgba(255,215,0,0.2);
-    border-color: var(--bright-gold);
-    color: var(--bright-gold);
-  }
-
-  .board-buzz-rank {
-    font-size: 0.75em;
-    opacity: 0.6;
-  }
-
-  .fj-overlay {
-    position: fixed; inset: 0; z-index: 400;
-    background: linear-gradient(160deg, #04057a 0%, #000080 50%, #000 100%);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 28px; padding: 40px;
-  }
-  .fj-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(2rem, 6vw, 5rem);
-    font-weight: 700; color: var(--bright-gold);
-    letter-spacing: 0.15em;
-    text-shadow: 0 0 40px rgba(255,215,0,0.6);
-    text-align: center;
-  }
-  .fj-category {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(1.4rem, 4vw, 3.5rem);
-    color: white; text-align: center;
-    letter-spacing: 0.08em;
-  }
-  .fj-clue {
-    font-family: 'Lato', sans-serif;
-    font-size: clamp(1rem, 3vw, 2.2rem);
-    color: white; text-align: center;
-    max-width: 900px; line-height: 1.5;
-    padding: 20px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.15);
-  }
-  .fj-wager-msg {
-    font-family: 'Lato', sans-serif;
-    font-size: clamp(0.85rem, 2vw, 1.4rem);
-    color: rgba(255,255,255,0.55); font-style: italic;
-    text-align: center;
-  }
-  .fj-results-list {
-    display: flex; flex-direction: column;
-    gap: 14px; width: 100%; max-width: 700px;
-    max-height: 60vh; overflow-y: auto;
-  }
-  .fj-result-item {
-    display: flex; justify-content: space-between; align-items: center;
-    background: rgba(255,255,255,0.07); border-radius: 10px;
-    padding: 14px 22px;
-    border: 2px solid rgba(255,255,255,0.1);
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(0.9rem, 2vw, 1.4rem);
-    transition: border-color 0.3s, background 0.3s;
-  }
-  .fj-result-item.correct { border-color: rgba(74,222,128,0.6); background: rgba(74,222,128,0.1); }
-  .fj-result-item.wrong { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.08); }
-  .fj-result-score { font-size: 1.1em; color: var(--bright-gold); }
-  .fj-winner-banner {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(1.5rem, 5vw, 4rem);
-    color: var(--bright-gold); text-align: center;
-    text-shadow: 0 0 40px rgba(255,215,0,0.8);
-    letter-spacing: 0.1em; margin-top: 10px;
-  }
-
-  /* Intro/title screen */
-    #intro-screen {
-      position: fixed; inset: 0;
-      background: radial-gradient(ellipse at center, #04057a 0%, #000 70%);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 30px; z-index: 500;
-      transition: opacity 0.5s ease;
+    /* ---------- Connect ---------- */
+    .connect {
+      height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 24px;
     }
+    .connect .wm { font-size: 2.4rem; }
+    .connect form { width: min(420px, 100%); display: flex; flex-direction: column; gap: 14px; }
 
-    #intro-screen.fade-out {
-      opacity: 0; pointer-events: none;
+    /* ---------- Board shell ---------- */
+    .tv {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 1.4vh;
+      padding: 2vh 2vw;
     }
+    .tv-top { display: flex; align-items: center; justify-content: space-between; gap: 2vw; }
+    .tv-top .wm { font-size: clamp(1.2rem, 1.9vw, 2.4rem); }
+    .join-strip { display: flex; align-items: center; gap: 1.2vw; }
+    .join-strip .join-text { text-align: right; line-height: 1.2; }
+    .join-strip .join-url { font-weight: 600; font-size: clamp(0.85rem, 1.15vw, 1.4rem); }
+    .join-strip .eyebrow { font-size: clamp(0.6rem, 0.75vw, 0.9rem); }
+    .join-strip .code-pill .code { font-size: clamp(1.2rem, 2vw, 2.6rem); }
+    .qr-sm { width: clamp(52px, 5vw, 96px); aspect-ratio: 1; background: var(--paper); border-radius: 8px; padding: 4px; }
+    .qr-sm svg, .qr-lg svg { width: 100%; height: 100%; display: block; }
 
-    .intro-title {
-      font-family: 'Oswald', sans-serif;
-      font-size: clamp(4rem, 12vw, 10rem);
-      font-weight: 700;
-      color: var(--bright-gold);
-      letter-spacing: 0.15em;
-      text-shadow: 0 0 60px rgba(255,215,0,0.7), 4px 4px 0 rgba(0,0,0,0.5);
-      animation: titlePop 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+    /* ---------- Grid ---------- */
+    .grid { display: grid; gap: 0.45vw; min-height: 0; grid-template-rows: auto repeat(5, 1fr); background: var(--board-deep); padding: 0.45vw; border-radius: 0.3vw; }
+    .cat {
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      padding: 1vh 0.6vw;
+      background: var(--board); color: var(--paper); text-transform: uppercase; text-shadow: var(--shadow-txt);
+      margin-bottom: 0.45vw;
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(0.9rem, 1.6vw, 2.2rem); line-height: 1.02; letter-spacing: 0.01em;
+      min-height: 9vh;
+      text-wrap: balance;
     }
-
-    @keyframes titlePop {
-      from { transform: scale(0.5); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+    .tile {
+      background: var(--board); color: var(--hi);
+      text-shadow: 0.05em 0.05em 0 #000;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--display); font-weight: 700;
+      font-size: clamp(1.6rem, 4.2vw, 5.4rem); letter-spacing: 0.01em;
+      font-variant-numeric: tabular-nums;
+      transition: background 0.2s, color 0.2s, transform 0.2s;
     }
+    .tile .cur { font-size: 0.55em; vertical-align: 0.45em; margin-right: 0.04em; font-weight: 700; }
+    .tile.answered { background: var(--board); color: transparent; text-shadow: none; }
+    .tile.active-flash { background: var(--paper); color: var(--board); text-shadow: none; transform: scale(1.04); }
 
-    .board-page { height: 100vh; display: flex; flex-direction: column; background: #000; }
+    /* ---------- Scores ---------- */
+    .scores { display: flex; overflow: hidden; min-height: 6vh; border-top: 1px solid var(--line); }
+    .score {
+      flex: 1 1 0; min-width: 0;
+      display: flex; align-items: baseline; justify-content: space-between; gap: 1vw;
+      padding: 1.2vh 1.2vw 0.4vh; border-left: 1px solid var(--line);
+    }
+    .score:first-child { border-left: none; padding-left: 0.3vw; }
+    .score:last-child { padding-right: 0.3vw; }
+    .score .n { font-weight: 600; font-size: clamp(0.9rem, 1.3vw, 1.7rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .score .s { font-family: var(--display); font-weight: 700; font-size: clamp(1rem, 1.8vw, 2.4rem); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+    .score.lead .s { color: var(--hi); }
+    .score.lead .n::after { content: 'Leading'; margin-left: 0.8vw; font-size: 0.62em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: var(--hi); color: var(--hi-ink); padding: 0.2vh 0.5vw; border-radius: 0.3vw; vertical-align: 0.2em; }
+    .score.buzz { background: var(--hi); color: var(--hi-ink); }
+    .score.buzz .s { color: var(--hi-ink); }
+    .picker { display: inline-flex; align-items: center; gap: 0.6vw; font-size: clamp(0.85rem, 1.2vw, 1.5rem); font-weight: 600; color: var(--paper-2); }
+    .picker b { background: var(--board); color: var(--hi); text-shadow: var(--shadow-txt); padding: 0.3vh 0.8vw; border-radius: 0.4vw; font-family: var(--display); font-weight: 700; }
+    .q-players { color: var(--muted); font-size: clamp(0.8rem, 1.2vw, 1.5rem); }
+    .q-players b { color: var(--paper-2); font-weight: 600; }
+    .score.buzz .n::after { background: var(--hi-ink); color: var(--hi); }
+    .scores-empty { color: var(--faint); align-self: center; font-size: clamp(0.9rem, 1.2vw, 1.5rem); }
+
+    /* ---------- Overlays ---------- */
+    .layer { position: fixed; inset: 0; z-index: 300; background: var(--ink); display: flex; flex-direction: column; padding: 4vh 5vw; }
+
+    .layer-blue { background: var(--board); }
+    .layer-blue .timer-track { background: rgba(0,0,0,0.35); }
+
+    /* Lobby */
+    .lobby { display: grid; grid-template-columns: 1.3fr 1fr; gap: 5vw; align-items: center; }
+    .lobby .h1 { font-size: clamp(2.6rem, 6.6vw, 9rem); margin: 2vh 0 3vh; }
+    .lobby .lede { font-size: clamp(1rem, 1.6vw, 2rem); max-width: 26ch; }
+    .lobby-join { background: var(--paper); color: var(--ink); border-radius: 2vw; padding: 3vh 2.4vw; display: flex; flex-direction: column; align-items: center; gap: 2vh; }
+    .qr-lg { width: min(26vw, 44vh); aspect-ratio: 1; }
+    .scan-label { font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.2vw, 2.8rem); letter-spacing: 0.01em; }
+    .lobby-join .or { color: #3a4290; font-size: clamp(0.8rem, 1.1vw, 1.4rem); text-align: center; }
+    .lobby-join .url { font-weight: 600; font-size: clamp(1rem, 1.5vw, 1.9rem); }
+    .lobby-join .big-code { font-family: var(--display); font-weight: 700; font-size: clamp(2.4rem, 6vw, 7rem); letter-spacing: 0.12em; line-height: 1; background: var(--board); color: var(--hi); text-shadow: 0.05em 0.05em 0 #000; padding: 1.2vh 1.6vw 1.2vh 2.2vw; border-radius: 1vw; }
+    .lobby-players { display: flex; flex-wrap: wrap; gap: 0.8vw; margin-top: 4vh; }
+    .lobby-players .chip { height: auto; padding: 0.8vh 1.2vw; font-size: clamp(0.9rem, 1.3vw, 1.6rem); animation: pop 0.25s ease-out; }
+
+    /* Clue */
+    .q-head { display: flex; align-items: center; justify-content: space-between; gap: 2vw; }
+    .q-cat { text-transform: uppercase; text-shadow: var(--shadow-txt); font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.6vw, 3.4rem); letter-spacing: 0.01em; }
+    .q-val { font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.6vw, 3.4rem); background: var(--board-deep); color: var(--hi); padding: 0.4vh 1.2vw; border-radius: 0.8vw; font-variant-numeric: tabular-nums; }
+    .q-head-left { display: flex; align-items: center; gap: 1.4vw; }
+    .q-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3vh 2vw; }
+    .q-clue { text-transform: uppercase; text-shadow: 0.05em 0.05em 0 #000; font-family: var(--display); font-weight: 500; font-size: clamp(1.8rem, 4.6vw, 6.4rem); line-height: 1.15; letter-spacing: 0.01em; text-align: center; max-width: 26ch; text-wrap: balance; }
+    .q-answer { margin: 0 auto 2vh; background: var(--hi); color: var(--hi-ink); border-radius: 1vw; padding: 1.4vh 2vw; font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.8vw, 3.6rem); text-align: center; animation: pop 0.25s ease-out; }
+    .q-foot { display: flex; align-items: center; justify-content: space-between; gap: 2vw; min-height: 9vh; }
+    .buzz-line { display: flex; align-items: center; gap: 1vw; flex-wrap: wrap; }
+    .buzz-first { display: flex; align-items: center; gap: 1.2vw; }
+    .buzz-first .tag { background: var(--hi); color: var(--hi-ink); font-weight: 700; font-size: clamp(0.8rem, 1.1vw, 1.4rem); padding: 0.6vh 0.9vw; border-radius: 0.5vw; text-transform: uppercase; letter-spacing: 0.06em; }
+    .buzz-first .who { font-family: var(--display); font-weight: 700; font-size: clamp(1.6rem, 4vw, 5.2rem); letter-spacing: 0.01em; line-height: 1; }
+    .buzz-next { color: var(--paper-2); font-size: clamp(0.9rem, 1.4vw, 1.8rem); }
+    .buzz-next .gap { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .q-hint { color: var(--paper-2); font-size: clamp(0.9rem, 1.4vw, 1.8rem); }
+
+    .timer { display: flex; align-items: center; gap: 1.2vw; min-width: 24vw; }
+    .timer-track { flex: 1; height: 1.2vh; background: var(--ink-3); border-radius: 99px; overflow: hidden; }
+    .timer-fill { height: 100%; background: var(--paper); border-radius: 99px; transition: width 0.95s linear, background 0.2s; }
+    .timer-fill.mid { background: var(--warn); }
+    .timer-fill.low { background: var(--bad); }
+    .timer-num { font-family: var(--display); font-weight: 700; font-size: clamp(1.4rem, 3vw, 4rem); font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; line-height: 1; }
+    .timer-label { color: var(--muted); font-size: clamp(0.7rem, 1vw, 1.2rem); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+
+    .layer.flash-good { box-shadow: inset 0 0 0 1.2vw var(--good); }
+    .layer.flash-bad { box-shadow: inset 0 0 0 1.2vw var(--bad); }
+
+    /* Daily double splash */
+    .dd-splash { background: var(--board); color: var(--paper); align-items: center; justify-content: center; text-align: center; z-index: 350; }
+    .dd-splash .h1 { color: var(--hi); text-shadow: 0.05em 0.05em 0 #000; font-size: clamp(4rem, 14vw, 18rem); animation: pop 0.4s cubic-bezier(.2,1.4,.4,1); }
+    .dd-splash p { font-size: clamp(1rem, 2vw, 2.6rem); font-weight: 600; margin-top: 2vh; }
+    .dd-meta { text-transform: uppercase; font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.6vw, 3.4rem); letter-spacing: 0.01em; margin-bottom: 2vh; }
+    .dd-wager { display: flex; align-items: center; gap: 1.2vw; font-size: clamp(1rem, 2vw, 2.6rem); font-weight: 600; }
+    .dd-wager b { font-family: var(--display); font-weight: 700; background: var(--hi); color: var(--hi-ink); padding: 0.4vh 1vw; border-radius: 0.6vw; }
+
+    /* Final round */
+    .fj { align-items: center; justify-content: center; gap: 3vh; text-align: center; z-index: 400; }
+    .fj .chip { height: auto; font-size: clamp(0.9rem, 1.4vw, 1.8rem); padding: 0.8vh 1.2vw; }
+    .fj-category { text-transform: uppercase; text-shadow: var(--shadow-txt); font-family: var(--display); font-weight: 700; font-size: clamp(2.4rem, 6vw, 8rem); letter-spacing: 0.01em; line-height: 1; max-width: 18ch; text-wrap: balance; }
+    .fj-msg { color: var(--paper); font-size: clamp(1rem, 2vw, 2.6rem); }
+    .fj-clue { font-family: var(--display); font-weight: 700; font-size: clamp(1.6rem, 3.6vw, 4.8rem); line-height: 1.1; letter-spacing: 0.01em; max-width: 26ch; color: var(--paper); text-transform: uppercase; text-shadow: 0.05em 0.05em 0 #000; padding: 1vh 3vw; text-wrap: balance; }
+    .fj-results { width: min(80vw, 1200px); display: flex; flex-direction: column; gap: 1vh; }
+    .fj-row { display: grid; grid-template-columns: 1fr 14vw 14vw; align-items: center; gap: 2vw; padding: 1.4vh 1.6vw; border-radius: 1vw; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); font-size: clamp(1rem, 2vw, 2.6rem); text-align: left; animation: rise 0.3s ease-out; }
+    .fj-row.head { background: none; border: none; padding-top: 0; padding-bottom: 0; color: var(--muted); font-size: clamp(0.7rem, 1vw, 1.2rem); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; animation: none; }
+    .fj-row .r { text-align: right; font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .fj-row.correct .w { color: var(--good); }
+    .fj-row.wrong .w { color: var(--bad); }
+    .fj-row .p { font-weight: 600; }
+
+    /* Finale: one big winner moment, then the details */
+    .finale { padding: 0; z-index: 450; display: grid; grid-template-rows: 1fr auto; }
+    .champ { background: var(--board); color: var(--paper); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4vw; align-items: end; padding: 6vh 5vw 5vh; overflow: hidden; }
+    .race { align-self: stretch; display: flex; flex-direction: column; min-height: 0; }
+    .race .eyebrow { margin-bottom: 1.5vh; }
+    .race svg { flex: 1; width: 100%; min-height: 0; overflow: visible; }
+    .race text { font-family: var(--ui); font-weight: 700; fill: var(--paper); }
+    .champ .eyebrow { color: var(--paper-2); font-size: clamp(0.9rem, 1.4vw, 1.8rem); }
+    .champ-name { text-transform: uppercase; color: var(--hi); text-shadow: 0.04em 0.04em 0 #000; padding-bottom: 0.06em; font-family: var(--display); font-weight: 700; font-size: clamp(4rem, 15vw, 20rem); letter-spacing: 0.01em; line-height: 0.85; margin: 1vh 0 2vh -0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: rise 0.6s cubic-bezier(.2,1.2,.4,1) both; }
+    .champ-line { display: flex; align-items: baseline; gap: 2vw; font-size: clamp(1.1rem, 2.2vw, 2.8rem); font-weight: 600; }
+    .champ-line .pts { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .wrap-row { display: grid; grid-template-columns: 1.1fr 2fr; gap: 4vw; padding: 4vh 5vw 5vh; }
+    .wrap-col .eyebrow { font-size: clamp(0.7rem, 1vw, 1.2rem); margin-bottom: 1.4vh; }
+    .runner { display: grid; grid-template-columns: 3ch 1fr auto; gap: 1vw; align-items: baseline; padding: 0.9vh 0; border-bottom: 1px solid var(--line); font-size: clamp(1rem, 1.8vw, 2.3rem); }
+    .runner:last-child { border-bottom: none; }
+    .runner .pos { color: var(--faint); font-family: var(--display); font-weight: 700; }
+    .runner .n { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .runner .s { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .awards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4vw; }
+    .award { border-top: 3px solid var(--hi); padding-top: 1.4vh; }
+    .award .t { color: var(--muted); font-size: clamp(0.75rem, 1.1vw, 1.4rem); font-weight: 600; }
+    .award .w { font-family: var(--display); font-weight: 700; font-size: clamp(1.3rem, 2.6vw, 3.4rem); letter-spacing: 0.01em; line-height: 1.05; margin: 0.6vh 0; }
+    .award .d { color: var(--paper-2); font-size: clamp(0.8rem, 1.2vw, 1.5rem); }
+    .final-ans { margin-top: 3vh; color: var(--paper-2); font-size: clamp(0.9rem, 1.4vw, 1.8rem); }
+    .final-ans b { color: var(--paper); }
+
+    .intro-gone { animation: fadeout 0.4s ease-in forwards; }
+    @keyframes fadeout { to { opacity: 0; visibility: hidden; } }
   </style>
 </head>
 <body>
 
-  <!-- Connect screen (shown until code is entered) -->
-  <div id="connect-screen" class="board-connect">
-    <div class="page-title" style="font-size:4rem;">JEOPARDY!</div>
-    <div class="subtitle" style="margin-bottom:20px;">Board Display</div>
-    <div class="connect-form">
+  <!-- Connect screen -->
+  <div id="connect-screen" class="connect">
+    <span class="wm">jeopardy<b>VIBES</b></span>
+    <form class="card" onsubmit="event.preventDefault(); connectBoard();">
+      <div class="h2">Put the board on this screen</div>
+      <p class="muted small">Enter the room code from the host's laptop. Then go full screen (F11 or ⌃⌘F).</p>
       <div>
-        <label style="text-align:left;">Room Code</label>
-        <input type="text" id="board-code-input" class="code-input" placeholder="XXXX" maxlength="4" autocomplete="off">
+        <label for="board-code-input">Room code</label>
+        <input type="text" id="board-code-input" class="code-input" placeholder="ABCD" maxlength="4" autocomplete="off" spellcheck="false">
       </div>
-      <button class="btn btn-gold btn-lg" onclick="connectBoard()">Connect Display</button>
-      <div id="connect-error" style="color:#ff6b6b; font-size:0.85rem; text-align:center; min-height:20px;"></div>
-    </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit">Show board</button>
+      <div id="connect-error" class="field-error" role="alert"></div>
+    </form>
   </div>
 
-  <!-- Main board page (hidden until connected) -->
-  <div id="board-page" class="board-page hidden">
+  <!-- Main board -->
+  <div id="board-page" class="tv hidden">
+    <header class="tv-top">
+      <div style="display:flex; align-items:center; gap:2vw;">
+        <span class="wm">jeopardy<b>VIBES</b></span>
+        <span class="picker hidden" id="picker"><b id="picker-name"></b> picks next</span>
+      </div>
+      <div class="join-strip">
+        <div class="join-text">
+          <div class="eyebrow">Join on your phone</div>
+          <div class="join-url" id="join-url-sm"></div>
+        </div>
+        <div class="code-pill"><span class="code" id="code-sm"></span></div>
+        <div class="qr-sm" id="qr-sm"></div>
+      </div>
+    </header>
 
-    <!-- Intro / title splash (shown when game starts) -->
-    <div id="intro-screen" class="hidden">
-      <div class="intro-title">JEOPARDY!</div>
-    </div>
+    <div id="jeopardy-board" class="grid"></div>
 
-    <!-- The grid board -->
-    <div id="jeopardy-board" class="jeopardy-board"></div>
+    <footer class="scores" id="scores"></footer>
 
-    <!-- Question overlay -->
-    <div id="question-overlay" class="question-overlay hidden">
-      <div class="ov-top-row">
+    <!-- Lobby (before the host starts) -->
+    <div id="intro-screen" class="layer hidden" style="justify-content:center;">
+      <div class="lobby">
         <div>
-          <div class="q-category" id="ov-category"></div>
-          <div class="q-value" id="ov-value"></div>
+          <span class="wm" style="font-size:clamp(1.4rem,2.4vw,3rem);">jeopardy<b>VIBES</b></span>
+          <h1 class="h1">Join the game</h1>
+          <p class="lede">Scan the code, or go to the address and enter the room code.</p>
+          <div class="lobby-players" id="lobby-players"></div>
         </div>
-        <div id="ov-timer" class="board-timer hidden">
-          <svg class="timer-ring" viewBox="0 0 80 80">
-            <circle class="timer-ring-bg" cx="40" cy="40" r="34"/>
-            <circle class="timer-ring-fill" id="timer-ring-fill" cx="40" cy="40" r="34"/>
-          </svg>
-          <div class="timer-inner">
-            <div class="timer-num" id="ov-timer-num">30</div>
-            <div class="timer-label" id="ov-timer-label">BUZZ</div>
+        <div class="lobby-join">
+          <div class="scan-label">Scan to join</div>
+          <div class="qr-lg" id="qr-lg"></div>
+          <div class="or">or go to <span class="url" id="join-url-lg"></span> and enter</div>
+          <div class="big-code" id="code-lg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clue -->
+    <div id="question-overlay" class="layer layer-blue hidden">
+      <div class="q-head">
+        <div class="q-head-left">
+          <div class="q-val" id="ov-value"></div>
+          <div class="q-cat" id="ov-category"></div>
+        </div>
+        <div id="ov-timer" class="timer hidden">
+          <div>
+            <div class="timer-label" id="ov-timer-label">Buzz</div>
           </div>
+          <div class="timer-track"><div class="timer-fill" id="timer-ring-fill" style="width:100%"></div></div>
+          <div class="timer-num" id="ov-timer-num">30</div>
         </div>
       </div>
-      <div class="q-clue" id="ov-clue"></div>
-      <div class="q-answer-reveal hidden" id="ov-answer"></div>
-      <div id="ov-buzz-order" class="board-buzz-order hidden"></div>
-    </div>
-
-    <!-- Buzz banner (shown at bottom when someone buzzes) -->
-    <div id="buzz-banner" class="buzz-banner hidden">
-      <div>
-        <div class="buzz-label">BUZZED IN</div>
-        <div class="buzzer-name" id="banner-name"></div>
+      <div class="q-body"><div class="q-clue" id="ov-clue"></div></div>
+      <div class="q-answer hidden" id="ov-answer"></div>
+      <div class="q-foot">
+        <div id="ov-buzz-order" class="buzz-line hidden"></div>
+        <div id="q-hint" class="q-hint">Buzz in on your phone</div>
+        <div class="q-players" id="q-players"></div>
+        <div id="dd-player-banner" class="dd-wager hidden"></div>
       </div>
     </div>
 
-    <!-- Daily Double overlay -->
-    <div id="dd-overlay" class="daily-double-banner hidden">
-      <div class="dd-text">DAILY DOUBLE!</div>
+    <!-- Daily double splash -->
+    <div id="dd-overlay" class="layer dd-splash hidden">
+      <div class="dd-meta" id="dd-meta"></div>
+      <div class="h1">Daily<br>Double</div>
+      <p id="dd-who">No buzzers. One player, one wager.</p>
     </div>
 
-    <!-- DD player/wager reveal -->
-    <div id="dd-player-banner" class="hidden" style="
-      position:fixed; bottom:0; left:0; right:0; z-index:350;
-      background:rgba(255,140,0,0.18); border-top:2px solid rgba(255,165,0,0.5);
-      padding:14px 30px; text-align:center;
-      font-family:'Oswald',sans-serif; font-size:clamp(1rem,2.5vw,1.8rem);
-      color:#fbbf24; letter-spacing:0.08em;">
-    </div>
-
-    <!-- Final Jeopardy overlay -->
-    <div id="fj-overlay" class="fj-overlay hidden">
-      <div class="fj-title">FINAL JEOPARDY!</div>
+    <!-- Final round -->
+    <div id="fj-overlay" class="layer layer-blue fj hidden">
+      <div class="chip chip-hi">Final Jeopardy</div>
       <div class="fj-category" id="fj-board-category"></div>
-      <div class="fj-wager-msg" id="fj-board-msg">Players — place your wagers now!</div>
+      <div class="fj-msg" id="fj-board-msg">Lock in your wager on your phone.</div>
       <div class="fj-clue" id="fj-board-clue" style="display:none;"></div>
-      <div class="fj-results-list" id="fj-results-list" style="display:none;"></div>
-      <div class="fj-winner-banner" id="fj-winner-banner" style="display:none;"></div>
+      <div class="fj-results" id="fj-results-list" style="display:none;"></div>
     </div>
 
+    <!-- Finale -->
+    <div id="finale" class="layer finale hidden">
+      <div class="champ">
+        <div>
+          <div class="eyebrow">Tonight's champion</div>
+          <div class="champ-name" id="champ-name"></div>
+          <div class="champ-line"><span class="pts" id="champ-pts"></span><span id="champ-note"></span></div>
+        </div>
+        <div class="race">
+          <div class="eyebrow">How it played out</div>
+          <svg id="race" viewBox="0 0 800 420" preserveAspectRatio="none" role="img" aria-label="Score after every clue"></svg>
+        </div>
+      </div>
+      <div class="wrap-row">
+        <div class="wrap-col">
+          <div class="eyebrow">Everyone else</div>
+          <div id="runners"></div>
+          <div class="final-ans" id="finale-answer"></div>
+        </div>
+        <div class="wrap-col">
+          <div class="eyebrow">Superlatives</div>
+          <div class="awards" id="awards"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <script src="/vendor/qrcode.js"></script>
+  <script src="/awards.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
     let gameData = null;
     let connected = false;
+    let players = [];
+    let firstBuzzerId = null;
+    let pickerId = null;
+    const scoreHistory = [];   // [{ id: score }] after every scoring event
+    function snapshot() {
+      if (!players.length) return;
+      const snap = {};
+      players.forEach(p => snap[p.id] = p.score);
+      const last = scoreHistory[scoreHistory.length - 1];
+      if (!last || Object.keys(snap).some(k => snap[k] !== last[k])) scoreHistory.push(snap);
+    }
+    function setPicker(id) {
+      pickerId = id;
+      const p = players.find(x => x.id === id);
+      $('picker').classList.toggle('hidden', !p);
+      if (p) $('picker-name').textContent = p.name;
+    }
 
-    // Auto-connect if code is in URL
+    const $ = id => document.getElementById(id);
+    const money = n => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString()}`;
+    function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
     const urlParams = new URLSearchParams(window.location.search);
     const urlCode = urlParams.get('code');
     if (urlCode) {
-      document.getElementById('board-code-input').value = urlCode.toUpperCase();
-      // Wait for socket connection
-      socket.on('connect', () => connectBoard());
+      $('board-code-input').value = urlCode.toUpperCase();
+      socket.on('connect', () => { if (!connected) connectBoard(); });
     }
-
-    document.getElementById('board-code-input').addEventListener('input', function() {
-      this.value = this.value.toUpperCase();
-    });
-
-    document.getElementById('board-code-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') connectBoard();
-    });
+    $('board-code-input').addEventListener('input', function () { this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
 
     function connectBoard() {
-      const code = document.getElementById('board-code-input').value.trim().toUpperCase();
-      if (code.length < 4) {
-        document.getElementById('connect-error').textContent = 'Enter the 4-character room code.';
-        return;
-      }
-
+      const code = $('board-code-input').value.trim().toUpperCase();
+      if (code.length < 4) { $('connect-error').textContent = 'Room codes are 4 characters.'; return; }
       socket.emit('join-board', code, (res) => {
-        if (res.error) {
-          document.getElementById('connect-error').textContent = res.error;
-          return;
-        }
+        if (res.error) { $('connect-error').textContent = res.error === 'Game not found' ? `No game with code ${code}.` : res.error; return; }
         connected = true;
         gameData = res.game;
-        document.getElementById('connect-screen').classList.add('hidden');
-        document.getElementById('board-page').classList.remove('hidden');
-
-        if (gameData.state === 'playing' || gameData.state === 'question-active') {
-          renderBoard(gameData.board);
-          if (gameData.state === 'question-active' && gameData.activeQuestion) {
-            showQuestionOverlay(gameData.activeQuestion);
-          }
-        } else {
-          // Show a waiting screen with the board ready
-          renderBoard(gameData.board);
-          showIntro();
-        }
+        players = res.game.players || [];
+        snapshot();
+        if (res.game.pickerId) setPicker(res.game.pickerId);
+        $('connect-screen').classList.add('hidden');
+        $('board-page').classList.remove('hidden');
+        setupJoin(code);
+        renderBoard(gameData.board);
+        renderScores();
+        if (gameData.state === 'lobby') showIntro();
+        else if (gameData.state === 'question-active' && gameData.activeQuestion) showQuestionOverlay(gameData.activeQuestion);
       });
     }
 
+    // ---------- Join info + QR ----------
+    async function setupJoin(code) {
+      let base = location.origin;
+      const local = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(location.hostname);
+      if (local) {
+        try {
+          const info = await (await fetch('/api/info')).json();
+          if (info.lanAddresses?.length) base = `http://${info.lanAddresses[0]}:${info.port}`;
+        } catch (e) {}
+      }
+      const joinUrl = `${base}/?code=${code}`;
+      const pretty = base.replace(/^https?:\/\//, '');
+      $('join-url-sm').textContent = pretty;
+      $('join-url-lg').textContent = pretty;
+      $('code-sm').textContent = code;
+      $('code-lg').textContent = code;
+      try {
+        const qr = qrcode(0, 'M');
+        qr.addData(joinUrl);
+        qr.make();
+        const svg = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true, alt: 'QR code to join the game' })
+          .replace('xMinYMin', 'xMidYMid');
+        $('qr-sm').innerHTML = svg;
+        $('qr-lg').innerHTML = svg;
+      } catch (e) { $('qr-sm').classList.add('hidden'); }
+    }
+
+    // ---------- Lobby ----------
     function showIntro() {
-      const intro = document.getElementById('intro-screen');
-      intro.classList.remove('hidden');
-      setTimeout(() => {
-        intro.classList.add('fade-out');
-        setTimeout(() => intro.classList.add('hidden'), 500);
-      }, 2000);
+      $('intro-screen').classList.remove('hidden', 'intro-gone');
+      renderLobby();
+    }
+    function hideIntro() {
+      const el = $('intro-screen');
+      if (el.classList.contains('hidden')) return;
+      el.classList.add('intro-gone');
+      setTimeout(() => el.classList.add('hidden'), 400);
+    }
+    function renderLobby() {
+      $('lobby-players').innerHTML = players.length
+        ? players.map(p => `<span class="chip">${escHtml(p.name)}</span>`).join('')
+        : '<span class="muted" style="font-size:clamp(0.9rem,1.3vw,1.6rem);">Waiting for the first player…</span>';
     }
 
-    // ==================== RENDER BOARD ====================
-
+    // ---------- Board ----------
     function renderBoard(board) {
-      const el = document.getElementById('jeopardy-board');
+      const el = $('jeopardy-board');
       el.innerHTML = '';
-
-      // Set grid columns based on number of categories
-      const numCats = board.categories.length;
-      el.style.gridTemplateColumns = `repeat(${numCats}, 1fr)`;
-
-      // Category headers
+      el.style.gridTemplateColumns = `repeat(${board.categories.length}, 1fr)`;
       board.categories.forEach(cat => {
-        const div = document.createElement('div');
-        div.className = 'board-category';
-        div.textContent = cat.name;
-        el.appendChild(div);
+        const d = document.createElement('div');
+        d.className = 'cat';
+        d.textContent = cat.name;
+        el.appendChild(d);
       });
-
-      // Question cells
-      const values = board.categories[0]?.questions.map(q => q.value) || [200,400,600,800,1000];
-      values.forEach((_, qi) => {
+      const rows = board.categories[0]?.questions.length || 5;
+      for (let qi = 0; qi < rows; qi++) {
         board.categories.forEach((cat, ci) => {
           const q = cat.questions[qi];
           const cell = document.createElement('div');
-          cell.className = 'board-cell' + (q.answered ? ' answered' : '');
+          cell.className = 'tile' + (q.answered ? ' answered' : '');
           cell.id = `cell-${ci}-${qi}`;
-          if (!q.answered) {
-            cell.innerHTML = `<div class="dollar">$${q.value}</div>`;
-          }
+          cell.innerHTML = `<span><span class="cur">$</span>${q.value}</span>`;
           el.appendChild(cell);
         });
-      });
-    }
-
-    function markCellAnswered(catIndex, qIndex) {
-      const cell = document.getElementById(`cell-${catIndex}-${qIndex}`);
-      if (cell) {
-        cell.classList.add('answered');
-        cell.innerHTML = '';
       }
     }
+    function markCellAnswered(ci, qi) {
+      const cell = $(`cell-${ci}-${qi}`);
+      if (cell) { cell.classList.remove('active-flash'); cell.classList.add('answered'); }
+    }
 
-    // ==================== QUESTION OVERLAY ====================
+    // ---------- Scores ----------
+    function renderScores() {
+      const el = $('scores');
+      if (!players.length) { el.innerHTML = '<div class="scores-empty">No players yet — scan the code to join.</div>'; return; }
+      const top = Math.max(...players.map(p => p.score));
+      el.innerHTML = players.map(p => `
+        <div class="score ${p.score === top && top > 0 ? 'lead' : ''} ${p.id === firstBuzzerId ? 'buzz' : ''}">
+          <span class="n">${escHtml(p.name)}</span>
+          <span class="s ${p.score < 0 ? 'neg' : ''}">${money(p.score)}</span>
+        </div>`).join('');
+      if (!$('intro-screen').classList.contains('hidden')) renderLobby();
+    }
+    function setPlayers(list) { if (list) { players = list; renderScores(); snapshot(); if (pickerId) setPicker(pickerId); } }
 
-    // ==================== TIMER ====================
-
+    // ---------- Timer ----------
     let boardTimerInterval = null;
-    let boardTimerTotal = 30;
-    const RING_CIRCUMFERENCE = 2 * Math.PI * 34; // r=34
-
     function startBoardTimer(seconds, mode) {
       clearBoardTimer();
-      boardTimerTotal = seconds;
       let timeLeft = seconds;
-
-      const timerEl = document.getElementById('ov-timer');
-      const numEl = document.getElementById('ov-timer-num');
-      const labelEl = document.getElementById('ov-timer-label');
-      const ringEl = document.getElementById('timer-ring-fill');
-
-      timerEl.classList.remove('hidden');
-      numEl.textContent = timeLeft;
-      labelEl.textContent = mode === 'buzz' ? 'BUZZ' : 'ANSWER';
-      ringEl.style.stroke = mode === 'buzz' ? '#4ade80' : '#fbbf24';
-      ringEl.style.strokeDasharray = RING_CIRCUMFERENCE;
-      ringEl.style.strokeDashoffset = 0;
-
+      const fill = $('timer-ring-fill');
+      $('ov-timer').classList.remove('hidden');
+      $('ov-timer-num').textContent = timeLeft;
+      $('ov-timer-label').textContent = mode === 'buzz' ? 'Buzz' : 'Answer';
+      fill.className = 'timer-fill';
+      fill.style.transition = 'none'; fill.style.width = '100%';
+      requestAnimationFrame(() => { fill.style.transition = ''; });
       boardTimerInterval = setInterval(() => {
         timeLeft--;
-        numEl.textContent = Math.max(0, timeLeft);
-        const pct = timeLeft / seconds;
-        ringEl.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
-
-        if (pct <= 0.25) ringEl.style.stroke = '#ef4444';
-        else if (pct <= 0.5) ringEl.style.stroke = '#f97316';
-        else if (mode === 'answer') ringEl.style.stroke = '#fbbf24';
-
+        const pct = Math.max(0, timeLeft / seconds);
+        $('ov-timer-num').textContent = Math.max(0, timeLeft);
+        fill.style.width = (pct * 100) + '%';
+        fill.className = 'timer-fill' + (pct <= 0.25 ? ' low' : pct <= 0.5 ? ' mid' : '');
         if (timeLeft <= 0) clearBoardTimer();
       }, 1000);
     }
+    function clearBoardTimer() { clearInterval(boardTimerInterval); boardTimerInterval = null; }
 
-    function clearBoardTimer() {
-      clearInterval(boardTimerInterval);
-      boardTimerInterval = null;
-    }
-
-    // ==================== BUZZ ORDER ====================
-
+    // ---------- Buzz order ----------
     function showBuzzOrder(buzzOrder) {
-      const el = document.getElementById('ov-buzz-order');
-      if (!buzzOrder || !buzzOrder.length) { el.classList.add('hidden'); return; }
+      const el = $('ov-buzz-order');
+      if (!buzzOrder || !buzzOrder.length) { el.classList.add('hidden'); $('q-hint').classList.remove('hidden'); return; }
+      $('q-hint').classList.add('hidden');
+      $('q-players').innerHTML = '';
       el.classList.remove('hidden');
-      el.innerHTML = buzzOrder.map((b, i) => `
-        <div class="board-buzz-item ${i === 0 ? 'first' : ''}">
-          <span class="board-buzz-rank">${i + 1}.</span>
-          ${escHtml(b.name)}
-        </div>
-      `).join('');
+      const [first, ...rest] = buzzOrder;
+      el.innerHTML = `
+        <div class="buzz-first"><span class="tag">Answering</span><span class="who">${escHtml(first.name)}</span></div>
+        ${rest.length ? `<div class="buzz-next">then ${rest.map(b => `${escHtml(b.name)}${b.ms != null && first.ms != null ? ` <span class="gap">+${((b.ms - first.ms) / 1000).toFixed(2)}s</span>` : ''}`).join(', ')}</div>` : ''}`;
     }
 
-    function escHtml(str) {
-      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    // ==================== QUESTION OVERLAY ====================
-
+    // ---------- Clue overlay ----------
     function showQuestionOverlay(q) {
-      const overlay = document.getElementById('question-overlay');
-
-      document.getElementById('ov-category').textContent = q.category;
-      document.getElementById('ov-value').textContent = `$${q.value}`;
-      document.getElementById('ov-clue').textContent = q.clue;
-      document.getElementById('ov-answer').textContent = '';
-      document.getElementById('ov-answer').classList.add('hidden');
-      document.getElementById('ov-buzz-order').classList.add('hidden');
-      document.getElementById('ov-buzz-order').innerHTML = '';
-      document.getElementById('ov-timer').classList.add('hidden');
-
-      const cell = document.getElementById(`cell-${q.catIndex}-${q.qIndex}`);
+      $('ov-category').textContent = q.category;
+      $('ov-value').textContent = `$${q.dailyDouble && q.ddWager ? q.ddWager : q.value}`;
+      $('ov-clue').textContent = q.clue;
+      $('ov-answer').classList.add('hidden');
+      $('ov-buzz-order').classList.add('hidden');
+      $('ov-timer').classList.add('hidden');
+      $('dd-player-banner').classList.add('hidden');
+      $('q-hint').classList.remove('hidden');
+      $('q-hint').textContent = q.dailyDouble ? 'Daily Double — no buzzing' : 'Buzz in on your phone';
+      $('q-players').innerHTML = q.dailyDouble ? '' : `${players.length} buzzers live: ${players.map(p => `<b>${escHtml(p.name)}</b>`).join(' · ')}`;
+      const cell = $(`cell-${q.catIndex}-${q.qIndex}`);
       if (cell) cell.classList.add('active-flash');
 
-      const show = () => {
-        overlay.classList.remove('hidden');
-        if (q.buzzTimeLimit) startBoardTimer(q.buzzTimeLimit, 'buzz');
-      };
-
       if (q.dailyDouble) {
-        showDailyDouble(show);
+        const finder = players.find(p => p.id === pickerId);
+        $('dd-meta').textContent = `${q.category} · $${q.value}`;
+        $('dd-who').textContent = finder ? `${finder.name} found it. No buzzers — just ${finder.name} and a wager.` : 'No buzzers. One player, one wager.';
+        $('dd-overlay').classList.remove('hidden');
+        // The clue stays hidden until the host locks the wager
+        $('ov-clue').textContent = '';
       } else {
-        setTimeout(show, 300);
+        setTimeout(() => {
+          $('question-overlay').classList.remove('hidden');
+          if (q.buzzTimeLimit) startBoardTimer(q.buzzTimeLimit, 'buzz');
+        }, 350);
       }
     }
-
     function hideQuestionOverlay() {
       clearBoardTimer();
-      document.getElementById('question-overlay').classList.add('hidden');
-      document.getElementById('buzz-banner').classList.add('hidden');
-      document.getElementById('ov-answer').classList.add('hidden');
-      document.getElementById('ov-buzz-order').classList.add('hidden');
-      document.getElementById('ov-timer').classList.add('hidden');
+      $('question-overlay').classList.add('hidden');
+      $('dd-overlay').classList.add('hidden');
+      firstBuzzerId = null;
+      renderScores();
+    }
+    function flash(kind) {
+      const ov = $('question-overlay');
+      ov.classList.add(kind);
+      setTimeout(() => ov.classList.remove(kind), 600);
     }
 
-    // ==================== DAILY DOUBLE ====================
-
-    function showDailyDouble(callback) {
-      const dd = document.getElementById('dd-overlay');
-      dd.classList.remove('hidden');
-      setTimeout(() => {
-        dd.classList.add('hidden');
-        if (callback) callback();
-      }, 2500);
-    }
-
-    // ==================== BUZZ BANNER ====================
-
-    function showBuzzBanner(name) {
-      const banner = document.getElementById('buzz-banner');
-      document.getElementById('banner-name').textContent = name;
-      banner.classList.remove('hidden');
-    }
-
-    // ==================== SOCKET EVENTS ====================
-
+    // ---------- Socket events ----------
     socket.on('game-started', ({ board }) => {
       gameData = { ...gameData, board };
       renderBoard(board);
-      showIntro();
+      hideIntro();
     });
+
+    socket.on('players-update', setPlayers);
+    socket.on('player-left', ({ players }) => setPlayers(players));
 
     socket.on('question-active', (q) => {
       if (!gameData) gameData = {};
       gameData.activeQuestion = q;
-      document.getElementById('buzz-banner').classList.add('hidden');
       showQuestionOverlay(q);
     });
 
-    socket.on('buzz-update', ({ firstBuzzerName, buzzOrder }) => {
-      showBuzzBanner(firstBuzzerName);
+    socket.on('buzz-update', ({ firstBuzzerId: fid, buzzOrder }) => {
+      firstBuzzerId = fid;
+      renderScores();
       showBuzzOrder(buzzOrder);
-      // Switch timer to answer countdown
-      const answerTime = gameData?.activeQuestion?.answerTimeLimit || 10;
-      startBoardTimer(answerTime, 'answer');
+      startBoardTimer(gameData?.activeQuestion?.answerTimeLimit || 10, 'answer');
     });
 
-    socket.on('answer-correct', () => {
-      document.getElementById('question-overlay').classList.add('correct-flash');
-      setTimeout(() => document.getElementById('question-overlay').classList.remove('correct-flash'), 500);
-    });
+    socket.on('answer-correct', ({ playerId, players }) => { flash('flash-good'); setPlayers(players); setPicker(playerId); });
 
-    socket.on('answer-wrong', ({ buzzOrder }) => {
-      document.getElementById('question-overlay').classList.add('wrong-flash');
-      document.getElementById('buzz-banner').classList.add('hidden');
-      setTimeout(() => document.getElementById('question-overlay').classList.remove('wrong-flash'), 500);
+    socket.on('answer-wrong', ({ players }) => {
+      flash('flash-bad');
+      firstBuzzerId = null;
+      setPlayers(players);
+      $('ov-buzz-order').classList.add('hidden');
+      $('q-players').innerHTML = '';
+      $('q-hint').classList.remove('hidden');
+      $('q-hint').textContent = 'Still open — buzz in';
     });
 
     socket.on('answer-revealed', ({ answer }) => {
-      const el = document.getElementById('ov-answer');
-      el.textContent = `Answer: ${answer}`;
+      const el = $('ov-answer');
+      el.textContent = answer;
       el.classList.remove('hidden');
     });
 
@@ -552,64 +574,120 @@
       hideQuestionOverlay();
     });
 
-    socket.on('players-update', (players) => {
-      if (gameData) gameData.players = players;
-    });
-
-    socket.on('game-reset', ({ board }) => {
+    socket.on('board-updated', ({ board }) => {
       if (gameData) gameData.board = board;
       renderBoard(board);
-      hideQuestionOverlay();
-      document.getElementById('fj-overlay').classList.add('hidden');
     });
 
-    socket.on('dd-revealed', ({ playerName, wager }) => {
-      const banner = document.getElementById('dd-player-banner');
-      banner.textContent = `${playerName} — Wager: $${wager}`;
-      banner.classList.remove('hidden');
+    socket.on('game-reset', ({ board, players }) => {
+      if (gameData) gameData.board = board;
+      renderBoard(board);
+      setPlayers(players);
+      hideQuestionOverlay();
+      $('fj-overlay').classList.add('hidden');
+      $('finale').classList.add('hidden');
+      fjResultsMap = {};
     });
 
-    socket.on('final-jeopardy-started', ({ category }) => {
+    socket.on('dd-revealed', ({ playerName, wager, clue }) => {
+      $('dd-overlay').classList.add('hidden');
+      $('ov-value').textContent = `$${wager}`;
+      $('ov-clue').textContent = clue;
+      $('q-hint').classList.add('hidden');
+      const b = $('dd-player-banner');
+      b.innerHTML = `<span>${escHtml(playerName)} wagers</span><b>$${Number(wager).toLocaleString()}</b>`;
+      b.classList.remove('hidden');
+      $('question-overlay').classList.remove('hidden');
+    });
+
+    socket.on('final-jeopardy-started', ({ category, players }) => {
       hideQuestionOverlay();
-      const ov = document.getElementById('fj-overlay');
-      document.getElementById('fj-board-category').textContent = category;
-      document.getElementById('fj-board-msg').textContent = 'Players — place your wagers now!';
-      document.getElementById('fj-board-clue').style.display = 'none';
-      document.getElementById('fj-results-list').style.display = 'none';
-      document.getElementById('fj-winner-banner').style.display = 'none';
-      ov.classList.remove('hidden');
+      setPlayers(players);
+      fjResultsMap = {};
+      $('fj-board-category').textContent = category;
+      $('fj-board-msg').textContent = 'Lock in your wager on your phone.';
+      $('fj-board-msg').style.display = '';
+      $('fj-board-clue').style.display = 'none';
+      $('fj-results-list').style.display = 'none';
+      $('fj-overlay').classList.remove('hidden');
+    });
+
+    socket.on('fj-wager-received', ({ wageredCount, totalPlayers }) => {
+      $('fj-board-msg').textContent = `${wageredCount} of ${totalPlayers} wagers locked in.`;
     });
 
     socket.on('fj-clue-revealed', ({ clue }) => {
-      document.getElementById('fj-board-msg').textContent = 'Write your answer!';
-      document.getElementById('fj-board-clue').textContent = clue;
-      document.getElementById('fj-board-clue').style.display = '';
+      $('fj-board-msg').textContent = 'Type your answer on your phone.';
+      $('fj-board-clue').textContent = clue;
+      $('fj-board-clue').style.display = '';
+    });
+
+    socket.on('fj-answer-count', ({ answered, totalPlayers }) => {
+      $('fj-board-msg').textContent = `${answered} of ${totalPlayers} answers in.`;
     });
 
     let fjResultsMap = {};
-    socket.on('fj-answer-result', ({ playerId, playerName, correct, wager, newScore }) => {
+    socket.on('fj-answer-result', ({ playerId, playerName, correct, wager, newScore, players }) => {
+      setPlayers(players);
       fjResultsMap[playerId] = { playerName, correct, wager, newScore };
-      const list = document.getElementById('fj-results-list');
+      $('fj-board-clue').style.display = 'none';
+      $('fj-board-msg').style.display = 'none';
+      const list = $('fj-results-list');
       list.style.display = '';
-      list.innerHTML = Object.values(fjResultsMap).map(r => `
-        <div class="fj-result-item ${r.correct ? 'correct' : 'wrong'}">
-          <span>${escHtml(r.playerName)}</span>
-          <span>${r.correct ? '+' : '-'}$${r.wager}</span>
-          <span class="fj-result-score">$${r.newScore}</span>
-        </div>
-      `).join('');
+      const rows = Object.values(fjResultsMap).sort((a, b) => b.newScore - a.newScore);
+      list.innerHTML = `<div class="fj-row head"><span>Player</span><span class="r">Wager</span><span class="r">Final</span></div>` +
+        rows.map(r => `
+          <div class="fj-row ${r.correct ? 'correct' : 'wrong'}">
+            <span class="p">${escHtml(r.playerName)}</span>
+            <span class="r w">${r.correct ? '+' : '−'}$${r.wager.toLocaleString()}</span>
+            <span class="r ${r.newScore < 0 ? 'neg' : ''}">${money(r.newScore)}</span>
+          </div>`).join('');
     });
 
-    socket.on('game-ended', ({ players }) => {
-      fjResultsMap = {};
-      const winner = players[0];
-      if (winner) {
-        const banner = document.getElementById('fj-winner-banner');
-        banner.textContent = `Winner: ${winner.name} — $${winner.score}`;
-        banner.style.display = '';
-      }
-      document.getElementById('fj-board-msg').style.display = 'none';
+    socket.on('game-ended', ({ players, finalAnswer }) => {
+      setPlayers(players);
+      $('fj-overlay').classList.add('hidden');
+      const [winner, ...rest] = players;
+      $('champ-name').textContent = winner ? winner.name : 'Nobody';
+      $('champ-pts').textContent = winner ? money(winner.score) : '';
+      const margin = winner && rest[0] ? winner.score - rest[0].score : 0;
+      $('champ-note').textContent = rest[0] ? (margin > 0 ? `${money(margin)} ahead of ${rest[0].name}` : `tied with ${rest[0].name}`) : '';
+      $('runners').innerHTML = rest.length ? rest.map((p, i) => `
+        <div class="runner"><span class="pos">${i + 2}</span><span class="n">${escHtml(p.name)}</span><span class="s ${p.score < 0 ? 'neg' : ''}">${money(p.score)}</span></div>`).join('')
+        : '<div class="muted">Solo game. Still counts.</div>';
+      $('finale-answer').innerHTML = finalAnswer ? `Final answer: <b>${escHtml(finalAnswer)}</b>` : '';
+      const wagers = Object.values(fjResultsMap).map(r => ({ name: r.playerName, wager: r.wager, correct: r.correct }));
+      $('awards').innerHTML = computeAwards(players, wagers).map(a => `
+        <div class="award"><div class="t">${a.t}</div><div class="w">${escHtml(a.w)}</div><div class="d">${a.d}</div></div>`).join('');
+      drawRace(players);
+      $('finale').classList.remove('hidden');
     });
+
+    // Score-after-every-clue chart. Winner is a heavy solid line; everyone else is lighter.
+    function drawRace(final) {
+      snapshot();
+      const svg = $('race');
+      const W = 800, H = 420, padR = 130;
+      const pts = scoreHistory.length > 1 ? scoreHistory : [{}, ...scoreHistory];
+      const vals = pts.flatMap(s => final.map(p => s[p.id] ?? 0));
+      const max = Math.max(0, ...vals), min = Math.min(0, ...vals);
+      const x = i => (i / Math.max(1, pts.length - 1)) * (W - padR);
+      const y = v => H - ((v - min) / Math.max(1, max - min)) * H;
+      let out = `<line x1="0" x2="${W - padR}" y1="${y(0)}" y2="${y(0)}" stroke="currentColor" stroke-opacity="0.25" stroke-width="2" stroke-dasharray="6 8" vector-effect="non-scaling-stroke"/>`;
+      const labels = [];
+      final.slice().reverse().forEach((p, ri) => {
+        const rank = final.length - 1 - ri;
+        const d = pts.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(s[p.id] ?? 0).toFixed(1)}`).join(' ');
+        const w = rank === 0 ? 7 : 3.5, op = rank === 0 ? 1 : rank === 1 ? 0.55 : 0.32;
+        out += `<path d="${d}" fill="none" stroke="${rank === 0 ? '#ffcc00' : '#ffffff'}" stroke-opacity="${op}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+        labels.push({ y: y(p.score), name: p.name, op });
+      });
+      // keep end labels from colliding
+      labels.sort((a, b) => a.y - b.y);
+      for (let i = 1; i < labels.length; i++) if (labels[i].y - labels[i - 1].y < 30) labels[i].y = labels[i - 1].y + 30;
+      labels.forEach(l => { out += `<text x="${W - padR + 14}" y="${l.y + 9}" font-size="26" fill-opacity="${Math.max(l.op, 0.6)}">${escHtml(l.name)}</text>`; });
+      svg.innerHTML = out;
+    }
   </script>
 </body>
 </html>

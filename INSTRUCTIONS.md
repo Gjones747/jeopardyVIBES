@@ -4,10 +4,10 @@
 
 ```bash
 cd ~/projects/jeopardy
-npm start
+go run .
 ```
 
-Server runs at `http://localhost:3000`. Keep this terminal open the whole time.
+Server runs at `http://localhost:2999`. Keep this terminal open the whole time.
 
 ---
 
@@ -25,7 +25,7 @@ You'll get something like `10.19.84.234`. Everyone needs to be on the **same WiF
 
 ## Setup (Before the Game)
 
-1. **Host** opens `http://10.19.84.234:3000/host.html` on their laptop
+1. **Host** opens `http://10.19.84.234:2999/host.html` on their laptop
 2. Build your board — click each cell to enter a clue and answer, OR hit one of the sample board buttons (Easy / Medium / Hard)
 3. Click **Create Game & Get Room Code** — you'll get a 4-letter code like `JX7K`
 4. Click **Open Board Display** — this opens the TV view in a new tab. Go fullscreen (`Cmd+Shift+F`) and project it to your TV
@@ -33,7 +33,7 @@ You'll get something like `10.19.84.234`. Everyone needs to be on the **same WiF
 
 ## Players Join
 
-Players open `http://10.19.84.234:3000` on their **phones**, enter their name and the room code, and tap **Join Game**.
+Players open `http://10.19.84.234:2999` on their **phones**, enter their name and the room code, and tap **Join Game**.
 
 Once everyone's in, the host clicks **Start Game**.
 
@@ -90,6 +90,6 @@ Questions marked as Daily Double show a big animated splash on the TV board befo
 
 | Who | URL |
 |---|---|
-| Host | `http://YOUR_IP:3000/host.html` |
-| TV Board | `http://YOUR_IP:3000/board.html` |
-| Players | `http://YOUR_IP:3000` |
+| Host | `http://YOUR_IP:2999/host.html` |
+| TV Board | `http://YOUR_IP:2999/board.html` |
+| Players | `http://YOUR_IP:2999` |

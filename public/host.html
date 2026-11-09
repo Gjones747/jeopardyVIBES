@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#14120f">
+  <meta name="theme-color" content="#030733">
   <title>jeopardyVIBES · Host</title>
   <link rel="stylesheet" href="/style.css">
   <style>
@@ -29,7 +29,7 @@
     .main { padding: 24px 28px 60px; min-width: 0; }
 
     .next { padding: 2px 0 18px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
-    .next .h2 { font-size: 1.5rem !important; letter-spacing: -0.03em; }
+    .next .h2 { font-size: 1.5rem !important; letter-spacing: 0.01em; }
     .next .h2 { font-size: 1.25rem; }
     .next p { color: var(--paper-2); font-size: 0.92rem; }
     .next .btns { display: flex; flex-direction: column; gap: 8px; }
@@ -64,14 +64,14 @@
     .progress-bar span { display: block; height: 100%; background: var(--hi); border-radius: 99px; transition: width 0.2s; }
 
     .setup-grid { display: grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap: 8px; overflow-x: auto; padding-bottom: 6px; }
-    .cat-head input { font-family: var(--display); font-weight: 800; font-size: 1rem; background: transparent; border: none; border-bottom: 2px solid var(--line); border-radius: 0; padding: 8px 2px; }
+    .cat-head input { font-family: var(--display); font-weight: 700; font-size: 1rem; background: transparent; border: none; border-bottom: 2px solid var(--line); border-radius: 0; padding: 8px 2px; }
     .cat-head input:focus { border-bottom-color: var(--hi); }
     .q-cell { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.12s; }
     .q-cell:focus-within { border-color: var(--paper-2); }
     .q-cell.filled .q-val { color: var(--paper); }
     .q-cell.dd { border-color: var(--hi); }
     .q-top { display: flex; align-items: center; justify-content: space-between; }
-    .q-val { font-family: var(--display); font-weight: 800; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .q-val { font-family: var(--display); font-weight: 700; color: var(--faint); font-variant-numeric: tabular-nums; }
     .q-cell textarea, .q-cell input[type="text"] { font-size: 0.85rem; padding: 4px 6px; margin: 0 -6px; width: calc(100% + 12px); background: transparent; border-color: transparent; }
     .q-cell textarea:hover { border-color: var(--line); }
     .q-cell textarea:focus { background: var(--ink); border-color: var(--hi); }
@@ -94,16 +94,16 @@
     /* ---------- Game console ---------- */
     .console { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px; margin-bottom: 20px; animation: rise 0.2s ease-out; }
     #active-q-panel { background: none; border: none; border-radius: 0; padding: 4px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 22px; }
-    #active-q-panel .clue { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; max-width: 24ch; margin: 6px 0 18px; }
+    #active-q-panel .clue { font-size: 2.6rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1.02; max-width: 24ch; margin: 6px 0 18px; }
     .btn-chunky { height: 64px; font-size: 1.15rem; font-weight: 700; border-radius: 14px; transform: translateY(-3px); transition: transform 0.05s, box-shadow 0.05s; }
-    .btn-chunky.btn-good { box-shadow: 0 5px 0 #2e9e63; }
-    .btn-chunky.btn-bad { box-shadow: 0 5px 0 #b8433b; }
+    .btn-chunky.btn-good { box-shadow: 0 5px 0 #1f9a57; }
+    .btn-chunky.btn-bad { box-shadow: 0 5px 0 #b83a30; }
     .btn-chunky:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 transparent; }
     .btn-chunky:disabled { transform: none; box-shadow: none; }
     kbd { font-family: var(--ui); font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 5px; border: 1px solid currentColor; opacity: 0.6; margin-left: 4px; }
     .shortcuts { margin-top: 12px; color: var(--faint); font-size: 0.8rem; }
     .console-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-    .console .clue { font-family: var(--display); font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 14px; max-width: 40ch; }
+    .console .clue { font-family: var(--display); font-weight: 700; font-size: 1.5rem; letter-spacing: 0.01em; line-height: 1.15; margin-bottom: 14px; max-width: 40ch; }
     .answer-key { display: flex; align-items: center; gap: 10px; background: var(--ink); border: 1px dashed var(--line); border-radius: var(--r); padding: 10px 14px; margin-bottom: 16px; }
     .answer-key .k { font-weight: 600; }
     .host-timer { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -111,7 +111,7 @@
     .host-timer .fill { height: 100%; background: var(--paper); border-radius: 99px; transition: width 0.95s linear, background 0.2s; }
     .host-timer .fill.mid { background: var(--warn); }
     .host-timer .fill.low { background: var(--bad); }
-    .host-timer .n { font-family: var(--display); font-weight: 800; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+    .host-timer .n { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
     .buzz-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; min-height: 32px; }
     .judge { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px; }
     .judge .btn-lg { font-size: 1.1rem; }
@@ -123,15 +123,15 @@
     .dd-quick { grid-column: 1 / -1; display: flex; gap: 6px; }
 
     /* Mini board */
-    .mini-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-    .mini-cat { font-family: var(--display); font-weight: 800; font-size: 0.85rem; line-height: 1.1; padding: 0 2px 8px; border-bottom: 2px solid var(--hi); display: flex; align-items: flex-end; min-height: 42px; }
-    .mini-cell { position: relative; background: var(--paper); color: var(--ink); border: none; border-radius: var(--r-sm); height: 50px; font-family: var(--display); font-weight: 800; font-size: 1.3rem; font-variant-numeric: tabular-nums; cursor: pointer; transition: transform 0.08s, background 0.12s; }
-    .mini-cell:hover { background: var(--hi); transform: translateY(-1px); }
-    .mini-cell.answered { background: transparent; color: var(--faint); border: 1px dashed var(--line); cursor: default; font-size: 1rem; text-decoration: line-through; }
+    .mini-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; background: var(--board-deep); padding: 4px; border-radius: var(--r-sm); }
+    .mini-cat { font-family: var(--display); font-weight: 700; font-size: 0.85rem; line-height: 1.1; padding: 6px 4px; background: var(--board); text-transform: uppercase; text-align: center; justify-content: center; text-shadow: var(--shadow-txt); display: flex; align-items: center; min-height: 46px; text-wrap: balance; }
+    .mini-cell { position: relative; background: var(--board); color: var(--hi); text-shadow: var(--shadow-txt); border: none; border-radius: 0; height: 50px; font-family: var(--display); font-weight: 700; font-size: 1.3rem; font-variant-numeric: tabular-nums; cursor: pointer; transition: transform 0.08s, background 0.12s; }
+    .mini-cell:hover { background: var(--hi); color: var(--hi-ink); text-shadow: none; }
+    .mini-cell.answered { background: var(--ink-2); color: var(--faint); text-shadow: none; border: none; cursor: default; font-size: 1rem; text-decoration: line-through; }
     .mini-cell.answered:hover { transform: none; }
     .mini-cell .dd-star { position: absolute; top: 4px; right: 5px; font-family: var(--ui); font-size: 0.6rem; font-weight: 700; background: var(--ink); color: var(--hi); padding: 1px 4px; border-radius: 4px; }
     .mini-cell:disabled { cursor: not-allowed; }
-    .mini-cell:disabled:hover { background: var(--paper); transform: none; }
+    .mini-cell:disabled:hover { background: var(--board); color: var(--hi); text-shadow: var(--shadow-txt); transform: none; }
     .mini-board.busy .mini-cell:not(.answered) { opacity: 0.85; }
     .board-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
 
@@ -155,7 +155,7 @@
     .host-awards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 22px; }
     .host-awards .a { border-top: 2px solid var(--hi); padding-top: 10px; }
     .host-awards .t { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
-    .host-awards .w { font-family: var(--display); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; }
+    .host-awards .w { font-family: var(--display); font-weight: 700; font-size: 1.3rem; letter-spacing: 0.01em; }
     .host-awards .d { color: var(--paper-2); font-size: 0.85rem; }
     .recap .first td:first-child::after { content: ' — winner'; color: var(--hi); font-weight: 600; }
 

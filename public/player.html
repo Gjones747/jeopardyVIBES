@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#14120f">
+  <meta name="theme-color" content="#030733">
   <title>jeopardyVIBES · Player</title>
   <link rel="stylesheet" href="/style.css">
   <style>
@@ -22,7 +22,7 @@
     .pv-me .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9em; }
 
     .pv-score { padding: 18px 16px 6px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-    .pv-score .big { font-family: var(--display); font-weight: 800; font-size: 3.4rem; letter-spacing: -0.04em; line-height: 0.9; font-variant-numeric: tabular-nums; }
+    .pv-score .big { font-family: var(--display); font-weight: 700; font-size: 3.4rem; letter-spacing: 0.01em; line-height: 0.9; font-variant-numeric: tabular-nums; }
     .pv-score .place { text-align: right; }
     .pv-score .place .h2 { font-size: 1.5rem; }
 
@@ -38,7 +38,7 @@
     .stage-icon {
       width: 56px; height: 56px; border-radius: 16px; background: var(--ink-3);
       display: flex; align-items: center; justify-content: center;
-      font-family: var(--display); font-weight: 800; font-size: 1.5rem; color: var(--muted);
+      font-family: var(--display); font-weight: 700; font-size: 1.5rem; color: var(--muted);
     }
 
     /* The buzzer */
@@ -46,16 +46,16 @@
       width: min(72vw, 300px); aspect-ratio: 1; border-radius: 50%;
       border: none; cursor: pointer;
       background: var(--hi); color: var(--hi-ink);
-      font-family: var(--display); font-weight: 800; font-size: 3rem; letter-spacing: -0.03em;
-      box-shadow: 0 10px 0 #9fb52a;
+      font-family: var(--display); font-weight: 700; font-size: 3rem; letter-spacing: 0.01em;
+      box-shadow: 0 10px 0 #a87f00;
       transform: translateY(-4px);
       transition: transform 0.05s, box-shadow 0.05s, background 0.1s;
       touch-action: manipulation;
       user-select: none; -webkit-user-select: none;
     }
-    .buzz-btn:active { transform: translateY(6px); box-shadow: 0 0 0 #9fb52a; }
+    .buzz-btn:active { transform: translateY(6px); box-shadow: 0 0 0 #a87f00; }
     .buzz-btn.buzzed { background: var(--ink-3); color: var(--muted); box-shadow: 0 0 0 transparent; transform: translateY(6px); font-size: 2rem; }
-    .buzz-btn.first { background: var(--good); color: #062214; box-shadow: 0 0 0 transparent; transform: translateY(6px); font-size: 1.9rem; line-height: 1.05; }
+    .buzz-btn.first { background: var(--good); color: #032212; box-shadow: 0 0 0 transparent; transform: translateY(6px); font-size: 1.9rem; line-height: 1.05; }
 
     .timer { width: 100%; max-width: 320px; }
     .timer-track { height: 6px; background: var(--ink-3); border-radius: 99px; overflow: hidden; }
@@ -67,7 +67,7 @@
     /* Final round */
     .fj-box { width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 12px; text-align: left; margin-bottom: auto; }
     .stage:has(#fj-area:not(.hidden)) { justify-content: flex-start; padding-top: 18px; }
-    .fj-cat { font-family: var(--display); font-weight: 800; font-size: 1.7rem; letter-spacing: -0.02em; line-height: 1.05; }
+    .fj-cat { font-family: var(--display); font-weight: 700; font-size: 1.7rem; letter-spacing: 0.01em; line-height: 1.05; }
     .wager-row { display: flex; gap: 8px; }
     .wager-row input { font-family: var(--display); font-weight: 700; font-size: 1.5rem; height: 56px; }
     .quick { display: flex; gap: 6px; }
@@ -84,16 +84,16 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
       animation: pop 0.25s ease-out; text-align: center; padding: 24px;
     }
-    .verdict.good { background: var(--good); color: #062214; }
-    .verdict.bad { background: var(--bad); color: #2a0603; }
-    .verdict .v-big { font-family: var(--display); font-weight: 800; font-size: 3rem; letter-spacing: -0.04em; line-height: 1; }
+    .verdict.good { background: var(--good); color: #032212; }
+    .verdict.bad { background: var(--bad); color: #2a0402; }
+    .verdict .v-big { font-family: var(--display); font-weight: 700; font-size: 3rem; letter-spacing: 0.01em; line-height: 1; }
     .verdict .v-sub { font-weight: 600; font-size: 1.1rem; }
 
     /* Join fallback */
     .join-wrap { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; gap: 22px; padding: 22px 16px; max-width: 440px; margin: 0 auto; }
     .join-wrap form { display: flex; flex-direction: column; gap: 16px; }
 
-    .conn-bar { background: var(--bad); color: #2a0603; text-align: center; font-weight: 600; font-size: 0.85rem; padding: 6px; }
+    .conn-bar { background: var(--bad); color: #2a0402; text-align: center; font-weight: 600; font-size: 0.85rem; padding: 6px; }
   </style>
 </head>
 <body>

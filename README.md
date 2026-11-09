@@ -10,17 +10,35 @@ https://jeopardy.kaolun.org
 
 ## Requirements
 
-- Node.js (v18 or newer)
-- npm
+- Go 1.23 or newer
 
 ## Setup
 
 ```bash
-npm install
-node server.js
+go run .
 ```
 
-The server starts on port 2999 by default.
+Or build a single binary (the `public/` folder is embedded, so it runs from anywhere):
+
+```bash
+go build -o jeopardy .
+./jeopardy
+```
+
+The server starts on port 2999 by default. Set `PORT` to change it, and `PING_TIMEOUT_MS` (default 60000) to control how long a silent phone stays connected.
+
+Run the tests with `go test ./...`.
+
+## Server Layout
+
+| File | What it does |
+| --- | --- |
+| `main.go` | HTTP server: static files, `/api/info`, `/ws` |
+| `ws.go` | WebSocket connections, the JSON wire format, ping/keepalive |
+| `game.go` | Game rooms and every game event (buzzing, scoring, Daily Double, Final Jeopardy) |
+| `public/socket.js` | Small browser client with a Socket.IO-style `on` / `emit` API over a plain WebSocket |
+
+Messages are JSON: the client sends `{"e": "event", "d": payload, "ack": n}` and the server replies with events `{"e": "event", "d": payload}` or acks `{"ack": n, "d": response}`.
 
 ## Playing on a Local Network
 
@@ -30,7 +48,7 @@ All devices must be on the same WiFi network. Find your machine's local IP addre
 - Linux: `hostname -I`
 - Windows: `ipconfig` (look for IPv4 Address)
 
-Then share the URL with everyone: `http://YOUR_IP:3000`
+Then share the URL with everyone: `http://YOUR_IP:2999`
 
 ## How It Works
 

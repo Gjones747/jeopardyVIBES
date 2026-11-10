@@ -10,7 +10,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,7 +42,7 @@ func newMux(srv *Server, port int) *http.ServeMux {
 		panic(err)
 	}
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServerFS(static))
+	mux.Handle("/", cleanURLs(static, http.FileServerFS(static)))
 	mux.HandleFunc("/ws", srv.HandleWS)
 	// LAN address so the TV can show a join link players can actually reach.
 	mux.HandleFunc("/api/info", func(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +50,29 @@ func newMux(srv *Server, port int) *http.ServeMux {
 		json.NewEncoder(w).Encode(map[string]any{"port": port, "lanAddresses": lanAddresses()})
 	})
 	return mux
+}
+
+// cleanURLs serves pages without the .html suffix: /host serves host.html.
+// Old /host.html links redirect to /host so bookmarks keep working.
+func cleanURLs(static fs.FS, files http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		name := strings.TrimPrefix(r.URL.Path, "/")
+		if page, ok := strings.CutSuffix(name, ".html"); ok && page != "" && page != "index" {
+			target := "/" + page
+			if r.URL.RawQuery != "" {
+				target += "?" + r.URL.RawQuery
+			}
+			http.Redirect(w, r, target, http.StatusMovedPermanently)
+			return
+		}
+		if name != "" && path.Ext(name) == "" {
+			if f, err := fs.Stat(static, name+".html"); err == nil && !f.IsDir() {
+				http.ServeFileFS(w, r, static, name+".html")
+				return
+			}
+		}
+		files.ServeHTTP(w, r)
+	})
 }
 
 func lanAddresses() []string {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#030733">
-  <title>jeopardyVIBES</title>
+  <title>Jeopardy</title>
   <link rel="stylesheet" href="/style.css">
   <style>
     .landing {
@@ -42,7 +42,7 @@
 <body>
   <main class="landing">
     <header class="landing-top">
-      <a class="wm" href="/">jeopardy<b>VIBES</b></a>
+      <a class="wm" href="/"><b>Jeopardy</b></a>
     </header>
 
     <section class="landing-body">
@@ -65,7 +65,7 @@
           <div id="join-error" class="field-error" role="alert"></div>
         </form>
 
-        <a href="/host.html" class="host-link">Hosting? <b>Set up a game</b></a>
+        <a href="/host" class="host-link">Hosting? <b>Set up a game</b></a>
       </div>
     </section>
 
@@ -95,7 +95,7 @@
       if (!name) { errEl.textContent = 'Add a name so the board knows who buzzed.'; nameEl.focus(); return; }
       errEl.textContent = '';
       try { localStorage.setItem('jv-name', name); } catch (e) {}
-      window.location.href = `/player.html?code=${code}&name=${encodeURIComponent(name)}`;
+      window.location.href = `/player?code=${code}&name=${encodeURIComponent(name)}`;
     }
   </script>
 </body>

@@ -25,7 +25,7 @@ You'll get something like `10.19.84.234`. Everyone needs to be on the **same WiF
 
 ## Setup (Before the Game)
 
-1. **Host** opens `http://10.19.84.234:2999/host.html` on their laptop
+1. **Host** opens `http://10.19.84.234:2999/host` on their laptop
 2. Build your board — click each cell to enter a clue and answer, OR hit one of the sample board buttons (Easy / Medium / Hard)
 3. Click **Create Game & Get Room Code** — you'll get a 4-letter code like `JX7K`
 4. Click **Open Board Display** — this opens the TV view in a new tab. Go fullscreen (`Cmd+Shift+F`) and project it to your TV
@@ -90,6 +90,6 @@ Questions marked as Daily Double show a big animated splash on the TV board befo
 
 | Who | URL |
 |---|---|
-| Host | `http://YOUR_IP:2999/host.html` |
-| TV Board | `http://YOUR_IP:2999/board.html` |
+| Host | `http://YOUR_IP:2999/host` |
+| TV Board | `http://YOUR_IP:2999/board` |
 | Players | `http://YOUR_IP:2999` |

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#030733">
-  <title>jeopardyVIBES · Host</title>
+  <title>Jeopardy · Host</title>
   <link rel="stylesheet" href="/style.css">
   <style>
     /* ---------- Shell ---------- */
@@ -100,27 +100,34 @@
     .setup-grid { display: grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap: 8px; overflow-x: auto; padding-bottom: 6px; }
     .cat-head input { font-family: var(--display); font-weight: 700; font-size: 1rem; background: transparent; border: none; border-bottom: 2px solid var(--line); border-radius: 0; padding: 8px 2px; }
     .cat-head input:focus { border-bottom-color: var(--hi); }
-    .q-cell { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.12s; }
-    .q-cell:focus-within { border-color: var(--paper-2); }
+    .q-cell { background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.12s, background 0.12s; min-height: 108px; text-align: left; color: var(--paper); font: inherit; cursor: pointer; width: 100%; }
+    .q-cell:hover { border-color: var(--paper-2); background: var(--ink-3); }
     .q-cell.filled .q-val { color: var(--paper); }
     .q-cell.dd { border-color: var(--hi); }
     .q-top { display: flex; align-items: center; justify-content: space-between; }
     .q-val { font-family: var(--display); font-weight: 700; color: var(--faint); font-variant-numeric: tabular-nums; }
-    .q-cell textarea, .q-cell input[type="text"] { font-size: 0.85rem; padding: 4px 6px; margin: 0 -6px; width: calc(100% + 12px); background: transparent; border-color: transparent; }
-    .q-cell textarea:hover { border-color: var(--line); }
-    .q-cell textarea:focus { background: var(--ink); border-color: var(--hi); }
-    .q-cell textarea { resize: vertical; line-height: 1.3; field-sizing: content; min-height: 0; }
-    .q-cell textarea.q-clue-input { min-height: 3.2em; }
-    .q-cell textarea.q-answer-input { min-height: 2.1em; color: var(--paper-2); }
-    .dd-toggle { position: relative; display: inline-flex; align-items: center; font-size: 0.68rem; font-weight: 700; color: var(--faint); cursor: pointer; margin: 0; user-select: none; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--line); opacity: 0; transition: opacity 0.12s; }
-    .dd-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-    .dd-toggle { opacity: 0.45 !important; }
-    .q-cell:hover .dd-toggle, .q-cell:focus-within .dd-toggle, .dd-toggle:focus-within, .q-cell.dd .dd-toggle { opacity: 1 !important; }
-    .q-cell.dd .dd-toggle { opacity: 1; background: var(--hi); border-color: var(--hi); color: var(--hi-ink); }
+    .q-prev-clue { font-size: 0.85rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+    .q-prev-answer { font-size: 0.8rem; color: var(--paper-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: auto; }
+    .q-prev-clue.is-empty, .q-prev-answer.is-empty { color: var(--faint); }
+    .q-dd-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 5px; background: var(--hi); color: var(--hi-ink); }
+    .q-store { display: none; }
     .builder-note { color: var(--muted); font-size: 0.82rem; margin: -6px 0 12px; }
 
     .fj-setup { margin-top: 18px; display: grid; grid-template-columns: 1fr 2fr 1.4fr; gap: 12px; align-items: end; }
     .card-title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+
+    /* Clue editor popup */
+    .clue-editor { max-width: 640px !important; width: 100%; }
+    .ce-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .ce-head .h2 { font-size: 1.4rem; }
+    .ce-val { font-family: var(--display); font-weight: 700; font-size: 1.6rem; color: var(--hi); font-variant-numeric: tabular-nums; }
+    #ce-clue { min-height: 7em; resize: vertical; font-size: 1.05rem; line-height: 1.4; }
+    #ce-answer { font-size: 1.05rem; }
+    .ce-dd { display: flex; align-items: center; gap: 10px; cursor: pointer; text-transform: none; letter-spacing: 0; font-size: 0.92rem; color: var(--paper-2); margin: 0; }
+    .ce-dd input { width: 18px; height: 18px; accent-color: var(--hi); }
+    .ce-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ce-foot .spacer { flex: 1; }
+    .ce-hint { color: var(--faint); font-size: 0.78rem; }
 
 
     /* ---------- Game console ---------- */
@@ -217,7 +224,7 @@
 <body>
   <header class="hd">
     <div class="brand">
-      <a class="wm" href="/" title="Back to start">jeopardy<b>VIBES</b></a>
+      <a class="wm" href="/" title="Back to start"><b>Jeopardy</b></a>
       <span class="chip">Host</span>
     </div>
     <ol class="stepper" id="stepper">
@@ -290,16 +297,17 @@
         </div>
 
         <div id="start-strip" class="start-strip hidden">
-          <div class="t"><b>Start from something?</b> Pick a starter board or one you saved, or just type into the grid.</div>
+          <div class="t"><b>Start from something?</b> Pick a starter board or one you saved, or click any square to write a clue.</div>
           <button class="btn btn-sm btn-primary" onclick="openLibrary()">Browse boards</button>
         </div>
 
         <div class="toolbar">
-          <p class="builder-note" style="margin:0;">Tap <b>DD</b> on any clue to hide the Daily Double there. Only you can see it.</p>
+          <p class="builder-note" style="margin:0;">Click any square to write its clue and answer. Mark one as the <b>Daily Double</b> in the editor. Only you can see it.</p>
           <div class="progress"><span id="fill-count">0 of 30 clues</span><div class="progress-bar"><span id="fill-bar" style="width:0%"></span></div></div>
         </div>
 
         <div class="setup-grid" id="setup-grid"></div>
+        <div class="q-store" id="q-store" aria-hidden="true"></div>
 
         <div class="card" style="margin-top:18px;">
           <div class="card-title"><span class="h2" style="font-size:1.1rem;">Final Jeopardy</span><span class="chip">Optional</span></div>
@@ -364,6 +372,8 @@
           <div style="display:flex; gap:8px;">
             <button class="btn btn-primary" onclick="startFinalJeopardy()">Start Final Jeopardy</button>
             <button class="btn btn-ghost" onclick="hideFJLaunch()">Not yet</button>
+            <span style="flex:1"></span>
+            <button class="btn" onclick="skipFinalJeopardy()">Skip Final Jeopardy</button>
           </div>
         </div>
 
@@ -409,6 +419,27 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- Clue editor -->
+  <div id="clue-editor" class="dialog-scrim hidden" onclick="if (event.target === this) closeClueEditor(true)">
+    <div class="dialog clue-editor" role="dialog" aria-labelledby="ce-cat">
+      <div class="ce-head">
+        <div><div class="eyebrow" id="ce-pos"></div><div class="h2" id="ce-cat"></div></div>
+        <span class="ce-val" id="ce-val"></span>
+      </div>
+      <div><label for="ce-clue">Clue</label><textarea id="ce-clue" maxlength="300" placeholder="The clue players see on the TV"></textarea></div>
+      <div><label for="ce-answer">Answer</label><input type="text" id="ce-answer" maxlength="200" placeholder="What is …?" autocomplete="off"></div>
+      <label class="ce-dd"><input type="checkbox" id="ce-dd">Make this the Daily Double <span class="muted small">(only you see it)</span></label>
+      <div class="ce-foot">
+        <button class="btn btn-sm" id="ce-prev" onclick="stepClueEditor(-1)">← Prev</button>
+        <button class="btn btn-sm" id="ce-next" onclick="stepClueEditor(1)">Next →</button>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost" onclick="closeClueEditor(false)">Cancel</button>
+        <button class="btn btn-primary" onclick="closeClueEditor(true)">Save</button>
+      </div>
+      <div class="ce-hint"><kbd>Enter</kbd> in the answer saves and goes to the next clue · <kbd>Esc</kbd> cancels</div>
+    </div>
   </div>
 
   <!-- Save dialog (only when the board has no name yet) -->
@@ -498,8 +529,8 @@
         const filled = countFilled();
         title = 'Build your board';
         text = filled === 30 ? 'All 30 clues are in. Open a room and get people joining.'
-             : filled === 0 ? 'Pick a board from Boards, or type clues into the grid.'
-             : `${filled} of 30 clues filled. Your work is kept in this browser as you type.`;
+             : filled === 0 ? 'Pick a board from Boards, or click a square to write a clue.'
+             : `${filled} of 30 clues filled. Your work is kept in this browser as you go.`;
         btns = `<button class="btn btn-primary btn-lg btn-block" id="create-btn" onclick="createGame()">Open a room</button>`;
       } else if (gameState === 'lobby') {
         title = n ? `${n} player${n === 1 ? '' : 's'} in` : 'Get people joining';
@@ -513,7 +544,8 @@
         } else if (left === 0) {
           title = 'Board cleared';
           text = 'Every clue is played. Time for the final round.';
-          btns = `<button class="btn btn-primary btn-lg btn-block" onclick="openFinalJeopardyModal()">Start Final Jeopardy</button>`;
+          btns = `<button class="btn btn-primary btn-lg btn-block" onclick="openFinalJeopardyModal()">Start Final Jeopardy</button>
+                  <button class="btn btn-ghost btn-block" onclick="skipFinalJeopardy()">Skip Final Jeopardy and show the winner</button>`;
         } else {
           const picker = currentPlayers.find(p => p.id === pickerId);
           title = picker ? `${picker.name} picks next` : 'Pick a clue';
@@ -577,7 +609,9 @@
 
     function buildSetupGrid() {
       const grid = $('setup-grid');
+      const store = $('q-store');
       grid.innerHTML = '';
+      store.innerHTML = '';
       for (let c = 0; c < NUM_CATS; c++) {
         const div = document.createElement('div');
         div.className = 'cat-head';
@@ -586,17 +620,25 @@
       }
       VALUES.forEach((val, r) => {
         for (let c = 0; c < NUM_CATS; c++) {
-          const div = document.createElement('div');
-          div.className = 'q-cell';
-          div.id = `qc-${c}-${r}`;
-          div.innerHTML = `
+          // The cell is a button that opens the clue editor. The clue's data
+          // lives in hidden fields in #q-store; everything else reads from them.
+          const cell = document.createElement('button');
+          cell.type = 'button';
+          cell.className = 'q-cell';
+          cell.id = `qc-${c}-${r}`;
+          cell.onclick = () => openClueEditor(c, r);
+          cell.innerHTML = `
             <div class="q-top">
               <span class="q-val">$${val}</span>
-              <label class="dd-toggle" title="Make this the Daily Double"><input type="checkbox" id="dd-${c}-${r}" onchange="handleDDChange(${c}, ${r})">DD</label>
+              <span class="q-dd-badge hidden" id="ddb-${c}-${r}">DD</span>
             </div>
-            <textarea class="q-clue-input" id="clue-${c}-${r}" placeholder="Clue" maxlength="300" rows="2"></textarea>
-            <textarea class="q-answer-input" id="answer-${c}-${r}" placeholder="Answer" maxlength="200" rows="1"></textarea>`;
-          grid.appendChild(div);
+            <span class="q-prev-clue" id="pc-${c}-${r}"></span>
+            <span class="q-prev-answer" id="pa-${c}-${r}"></span>`;
+          grid.appendChild(cell);
+          store.insertAdjacentHTML('beforeend', `
+            <textarea id="clue-${c}-${r}" tabindex="-1"></textarea>
+            <textarea id="answer-${c}-${r}" tabindex="-1"></textarea>
+            <input type="checkbox" id="dd-${c}-${r}" tabindex="-1">`);
         }
       });
       refreshFill();
@@ -614,8 +656,17 @@
       for (let c = 0; c < NUM_CATS; c++) for (let r = 0; r < VALUES.length; r++) {
         const cell = $(`qc-${c}-${r}`);
         if (!cell) continue;
-        cell.classList.toggle('filled', !!($(`clue-${c}-${r}`).value.trim() && $(`answer-${c}-${r}`).value.trim()));
-        cell.classList.toggle('dd', $(`dd-${c}-${r}`).checked);
+        const clue = $(`clue-${c}-${r}`).value.trim(), answer = $(`answer-${c}-${r}`).value.trim(), dd = $(`dd-${c}-${r}`).checked;
+        cell.classList.toggle('filled', !!(clue && answer));
+        cell.classList.toggle('dd', dd);
+        $(`ddb-${c}-${r}`).classList.toggle('hidden', !dd);
+        const pc = $(`pc-${c}-${r}`), pa = $(`pa-${c}-${r}`);
+        pc.textContent = clue || 'Click to add a clue';
+        pc.classList.toggle('is-empty', !clue);
+        pa.textContent = answer || (clue ? 'No answer yet' : '');
+        pa.classList.toggle('is-empty', !answer);
+        const catName = $(`cat-name-${c}`).value.trim() || `Category ${c + 1}`;
+        cell.setAttribute('aria-label', `${catName} for $${VALUES[r]}: ${clue ? 'edit clue' : 'add a clue'}`);
         if (cell.classList.contains('filled')) cell.classList.remove('missing');
       }
       const n = countFilled();
@@ -627,13 +678,53 @@
       refreshSaveState();
     }
 
-    function handleDDChange(catIdx, qIdx) {
-      if ($(`dd-${catIdx}-${qIdx}`).checked) {
-        for (let c = 0; c < NUM_CATS; c++) for (let r = 0; r < VALUES.length; r++) {
-          if (c !== catIdx || r !== qIdx) { const el = $(`dd-${c}-${r}`); if (el) el.checked = false; }
-        }
-      }
+    // ---- Clue editor popup ----
+    let editing = null;   // { c, r } of the clue open in the editor
+
+    function openClueEditor(c, r) {
+      editing = { c, r };
+      $('ce-cat').textContent = $(`cat-name-${c}`).value.trim() || `Category ${c + 1}`;
+      $('ce-val').textContent = `$${VALUES[r]}`;
+      $('ce-clue').value = $(`clue-${c}-${r}`).value;
+      $('ce-answer').value = $(`answer-${c}-${r}`).value;
+      $('ce-dd').checked = $(`dd-${c}-${r}`).checked;
+      const idx = c * VALUES.length + r;
+      $('ce-prev').disabled = idx === 0;
+      $('ce-next').disabled = idx === NUM_CATS * VALUES.length - 1;
+      $('ce-pos').textContent = `${idx + 1} of ${NUM_CATS * VALUES.length}`;
+      $('clue-editor').classList.remove('hidden');
+      setTimeout(() => $('ce-clue').focus(), 30);
+    }
+
+    function commitClueEditor() {
+      if (!editing) return;
+      const { c, r } = editing;
+      $(`clue-${c}-${r}`).value = $('ce-clue').value.trim();
+      $(`answer-${c}-${r}`).value = $('ce-answer').value.trim();
+      const dd = $('ce-dd').checked;
+      // Only one Daily Double per board.
+      if (dd) for (let cc = 0; cc < NUM_CATS; cc++) for (let rr = 0; rr < VALUES.length; rr++) $(`dd-${cc}-${rr}`).checked = false;
+      $(`dd-${c}-${r}`).checked = dd;
       refreshFill();
+    }
+
+    function closeClueEditor(save) {
+      if (!editing) return;
+      if (save) commitClueEditor();
+      const { c, r } = editing;
+      editing = null;
+      $('clue-editor').classList.add('hidden');
+      $(`qc-${c}-${r}`).focus();
+    }
+
+    // Save this clue and move to the previous/next one (down the column, then across).
+    function stepClueEditor(dir) {
+      if (!editing) return;
+      commitClueEditor();
+      const total = NUM_CATS * VALUES.length;
+      const idx = editing.c * VALUES.length + editing.r + dir;
+      if (idx < 0 || idx >= total) { closeClueEditor(false); return; }
+      openClueEditor(Math.floor(idx / VALUES.length), idx % VALUES.length);
     }
 
     function getBoardData() {
@@ -967,7 +1058,7 @@
       if (!gameCode) return;
       const w = 1280, h = 800;
       const left = Math.round((screen.width - w) / 2), top = Math.round((screen.height - h) / 2);
-      window.open(`/board.html?code=${gameCode}`, 'JeopardyBoard', `width=${w},height=${h},left=${left},top=${top},resizable=yes`);
+      window.open(`/board?code=${gameCode}`, 'JeopardyBoard', `width=${w},height=${h},left=${left},top=${top},resizable=yes`);
     }
 
     function startGame() {
@@ -1115,6 +1206,20 @@
     }
     function hideFJLaunch() { $('fj-launch-panel').classList.add('hidden'); }
 
+    // End the game without a final round: straight to the podium.
+    async function skipFinalJeopardy() {
+      const left = remainingClues();
+      const ok = await confirmBox({
+        title: 'Skip Final Jeopardy?',
+        text: left > 0
+          ? `${left} clue${left === 1 ? ' is' : 's are'} still on the board. The game ends now and the current leader wins.`
+          : 'The game ends now and the current leader wins. The podium goes up on the TV.',
+        yes: 'Skip and show the winner', no: 'Cancel' });
+      if (!ok) return;
+      hideFJLaunch();
+      endGame();
+    }
+
     function startFinalJeopardy() {
       const category = $('fj-cat-input').value.trim();
       const clue = $('fj-clue-input').value.trim();
@@ -1207,7 +1312,7 @@
     let fjWagersLog = [];
     let lastAwards = [];
     function copyResults() {
-      const lines = [`jeopardyVIBES — ${new Date().toLocaleDateString()}`]
+      const lines = [`Jeopardy — ${new Date().toLocaleDateString()}`]
         .concat(currentPlayers.map((p, i) => `${i + 1}. ${p.name} ${money(p.score)}`))
         .concat(lastAwards.map(a => `${a.t}: ${a.w} (${a.d})`));
       const text = lines.join('\n');
@@ -1327,6 +1432,7 @@
       gameState = 'ended';
       updatePlayerList(players);
       $('fj-host-panel').classList.add('hidden');
+      $('fj-launch-panel').classList.add('hidden');
       $('mini-board-section').classList.add('hidden');
       renderRecap(players);
       $('game-over-panel').classList.remove('hidden');
@@ -1376,6 +1482,11 @@
       if (e.key === 'Escape') closeSaveDialog();
     });
     $('board-name').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+    $('clue-editor').addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeClueEditor(false); }
+      else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); closeClueEditor(true); }
+      else if (e.key === 'Enter' && e.target.id === 'ce-answer') { e.preventDefault(); stepClueEditor(1); }
+    });
     document.addEventListener('keydown', e => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's' && $('section-setup').classList.contains('active')) { e.preventDefault(); if (!$('save-btn').disabled) saveBoard(); }
       if (e.key === 'Escape') { closeLibrary(); }

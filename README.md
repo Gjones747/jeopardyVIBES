@@ -57,9 +57,9 @@ There are four views:
 | View          | URL            | Used by             |
 | ------------- | -------------- | ------------------- |
 | Join / Home   | `/`            | Players to join     |
-| Host Panel    | `/host.html`   | Game host           |
-| Board Display | `/board.html`  | TV or projector     |
-| Player View   | `/player.html` | Each player's phone |
+| Host Panel    | `/host`        | Game host           |
+| Board Display | `/board`       | TV or projector     |
+| Player View   | `/player`      | Each player's phone |
 
 | TV board | Phone buzzer |
 | --- | --- |
@@ -69,7 +69,7 @@ There are four views:
 
 ## Running a Game
 
-1. Open `/host.html` on your device
+1. Open `/host`      on your device
 2. Pick a board from **Boards** (or write your own), then click **Open a room**
 3. Click **Open TV display** and put that window on the TV. It shows a QR code and the room code
 4. Players scan the QR code (or open `/` on their phones) and enter their name and the room code
@@ -83,9 +83,10 @@ The TV figures out your machine's LAN address for the join link and QR code. Fon
 ## Board Builder
 
 - Six categories, five clues each ($200 - $1000)
-- Tap **DD** on any clue to make it the Daily Double (only the host sees it)
+- Click any square to open the clue editor: write the clue and answer, and tick **Make this the Daily Double** (only the host sees it)
+- In the editor, **Prev** / **Next** (or Enter in the answer box) saves and moves to the neighbouring clue, so you can fill a whole column without closing it. Esc cancels
 - Name the board at the top and click **Save** (or ⌘/Ctrl+S). Saving again updates the same board; the status next to the name shows **Saved** or **Unsaved changes**
-- Everything you type is also kept as a draft in the browser, so a reload or closed tab doesn't lose work
+- Everything you enter is also kept as a draft in the browser, so a reload or closed tab doesn't lose work
 - **Boards** opens your saved boards (open, duplicate, delete with undo) and four starter boards: Family night, General knowledge, Expert, College night. A starter opens as a new unsaved copy
 - You're asked before anything replaces unsaved changes
 - **Export this board** / **Import from file** move a board to another computer as a `.json` file
@@ -105,6 +106,8 @@ When a Daily Double clue is selected, the TV announces it and the host panel sho
 5. Players type their answers on their phones; only the host sees them
 6. The host marks each answer correct or wrong
 7. Click **Show the winner** to put the podium, score chart, and superlatives on the TV
+
+Don't want a final round? Click **Skip Final Jeopardy** (in the sidebar when the board is cleared, or on the Final Jeopardy setup panel) to go straight to the podium.
 
 At the end, **Copy results for the group chat** on the host panel copies the standings and superlatives as text.
 

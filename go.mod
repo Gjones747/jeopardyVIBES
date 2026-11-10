@@ -1,4 +1,4 @@
-module github.com/Gjones747/jeopardyVIBES
+module jeopardy
 
 go 1.23
 

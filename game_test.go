@@ -248,3 +248,42 @@ func TestIntParsesLikeParseInt(t *testing.T) {
 		}
 	}
 }
+
+func TestClueMedia(t *testing.T) {
+	ts := httptest.NewServer(newMux(NewServer(time.Minute), 0))
+	defer ts.Close()
+
+	b := testBoard()
+	b.Categories[0].Questions[0].Image = "https://example.com/cat.png"
+	b.Categories[0].Questions[0].Audio = "/media/meow.mp3"
+	b.Categories[0].Questions[1].Image = "javascript:alert(1)"
+	b.Categories[0].Questions[1].Audio = "//evil.example/x.mp3"
+
+	host := dial(t, ts.URL)
+	var created struct{ Code string }
+	host.call("create-game", b, &created)
+	host.emit("start-game", nil)
+	host.next("game-started")
+
+	host.emit("select-question", map[string]any{"catIndex": 0, "qIndex": 0})
+	var q ActiveQuestion
+	json.Unmarshal(host.next("question-active").D, &q)
+	if q.Image != "https://example.com/cat.png" || q.Audio != "/media/meow.mp3" {
+		t.Fatalf("media not passed through: %+v", q)
+	}
+	host.emit("audio-control", map[string]string{"action": "play"})
+	var ac struct{ Action string }
+	json.Unmarshal(host.next("audio-control").D, &ac)
+	if ac.Action != "play" {
+		t.Fatalf("audio-control %+v", ac)
+	}
+	host.emit("dismiss-question", nil)
+	host.next("question-closed")
+
+	host.emit("select-question", map[string]any{"catIndex": 0, "qIndex": 1})
+	q = ActiveQuestion{}
+	json.Unmarshal(host.next("question-active").D, &q)
+	if q.Image != "" || q.Audio != "" {
+		t.Fatalf("unsafe media URLs kept: %+v", q)
+	}
+}

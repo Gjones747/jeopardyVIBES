@@ -2,8 +2,8 @@
 // either a direct audio link (.mp3, .wav, …) or a YouTube link. Used by the
 // host's clue editor preview and by the TV.
 //
-// YouTube doesn't allow hiding its player while it plays, so a YouTube clip
-// shows the video in `ytBox`. Pages style `ytBox` themselves.
+// YouTube does not allow hiding its player while it plays, so a YouTube clip
+// shows the video in `ytBox` (the host panel; the TV never loads YouTube).
 
 const Media = (() => {
   // The 11-character video id from any common YouTube link, or null.

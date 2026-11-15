@@ -6,7 +6,7 @@
 (function () {
   window.io = function io() {
     const handlers = {}, acks = {}, queue = [];
-    let ws, seq = 0, retry = 500;
+    let ws, seq = 0, retry = 500, closed = false;
 
     const socket = {
       id: null,
@@ -20,6 +20,8 @@
         socket.connected ? ws.send(frame) : queue.push(frame);
         return socket;
       },
+      // Close for good: no more reconnects.
+      close() { closed = true; ws.close(); },
     };
 
     const fire = (event, data) => (handlers[event] || []).forEach(fn => fn(data));
@@ -46,6 +48,7 @@
         const was = socket.connected;
         socket.connected = false;
         if (was) fire('disconnect');
+        if (closed) return;
         setTimeout(open, retry);
         retry = Math.min(retry * 2, 5000);
       };

@@ -78,6 +78,15 @@ There are four views:
 The host sidebar always shows the one next step for the current phase (Build → Lobby → Play → Final → Wrap).
 While a clue is open, the host can judge with the keyboard: **C** correct, **W** wrong, **A** show the answer on the TV, **Esc** close the clue.
 
+### Pictures and sounds
+
+Any clue can have a **Picture link** and a **Sound link** (set them in the clue editor). The board only stores the links, so saved boards stay small in browser storage.
+
+- Use a direct link to the file (ending in `.jpg`, `.png`, `.gif`, `.mp3`, …), not a share page. Links must start with `http://`, `https://` or `/`.
+- The picture shows on the TV above the clue. The host plays the sound on the TV with **Play sound on TV** (or **P**).
+- Browsers block sound until someone clicks the TV page once. If that happens, the TV shows a button to turn sound on.
+- With no internet, outside links won't load.
+
 The TV figures out your machine's LAN address for the join link and QR code. Fonts and the QR library are served locally, so the game works on a network with no internet access.
 
 ## Board Builder

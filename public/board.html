@@ -107,6 +107,13 @@
     .q-head-left { display: flex; align-items: center; gap: 1.4vw; }
     .q-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3vh 2vw; }
     .q-clue { text-transform: uppercase; text-shadow: 0.05em 0.05em 0 #000; font-family: var(--display); font-weight: 500; font-size: clamp(1.8rem, 4.6vw, 6.4rem); line-height: 1.15; letter-spacing: 0.01em; text-align: center; max-width: 26ch; text-wrap: balance; }
+    .q-body { flex-direction: column; gap: 3vh; min-height: 0; }
+    .q-image { max-width: 70vw; max-height: 46vh; min-height: 0; object-fit: contain; border-radius: 1vw; box-shadow: 0 1vh 3vh rgba(0,0,0,0.35); background: var(--board-deep); }
+    .q-body.has-image .q-clue { font-size: clamp(1.4rem, 3.2vw, 4.4rem); max-width: 34ch; }
+    .q-sound { display: inline-flex; align-items: center; gap: 0.8vw; background: var(--board-deep); color: var(--hi); border-radius: 99px; padding: 0.8vh 1.6vw; font-family: var(--display); font-weight: 700; font-size: clamp(1rem, 1.8vw, 2.4rem); text-transform: uppercase; letter-spacing: 0.04em; }
+    .q-sound.playing .note { animation: sound-pulse 0.8s ease-in-out infinite alternate; }
+    @keyframes sound-pulse { from { opacity: 0.4; } to { opacity: 1; } }
+    .sound-unlock { position: fixed; left: 50%; bottom: 3vh; transform: translateX(-50%); z-index: 50; background: var(--hi); color: var(--hi-ink); font-weight: 700; font-size: clamp(0.9rem, 1.4vw, 1.8rem); padding: 1.2vh 2vw; border-radius: 99px; border: none; cursor: pointer; font-family: inherit; }
     .q-answer { margin: 0 auto 2vh; background: var(--hi); color: var(--hi-ink); border-radius: 1vw; padding: 1.4vh 2vw; font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.8vw, 3.6rem); text-align: center; animation: pop 0.25s ease-out; }
     .q-foot { display: flex; align-items: center; justify-content: space-between; gap: 2vw; min-height: 9vh; }
     .buzz-line { display: flex; align-items: center; gap: 1vw; flex-wrap: wrap; }
@@ -251,7 +258,13 @@
           <div class="timer-num" id="ov-timer-num">30</div>
         </div>
       </div>
-      <div class="q-body"><div class="q-clue" id="ov-clue"></div></div>
+      <div class="q-body" id="ov-body">
+        <img class="q-image hidden" id="ov-image" alt="">
+        <div class="q-sound hidden" id="ov-sound"><span class="note">♪</span><span id="ov-sound-label">Listen</span></div>
+        <div class="q-clue" id="ov-clue"></div>
+      </div>
+      <audio id="ov-audio" preload="auto"></audio>
+      <button class="sound-unlock hidden" id="sound-unlock">Click here to turn on sound for this screen</button>
       <div class="q-answer hidden" id="ov-answer"></div>
       <div class="q-foot">
         <div id="ov-buzz-order" class="buzz-line hidden"></div>
@@ -488,6 +501,7 @@
       $('ov-category').textContent = q.category;
       $('ov-value').textContent = `$${q.dailyDouble && q.ddWager ? q.ddWager : q.value}`;
       $('ov-clue').textContent = q.clue;
+      setClueMedia(q.dailyDouble ? {} : q);
       $('ov-answer').classList.add('hidden');
       $('ov-buzz-order').classList.add('hidden');
       $('ov-timer').classList.add('hidden');
@@ -505,6 +519,13 @@
         $('dd-overlay').classList.remove('hidden');
         // The clue stays hidden until the host locks the wager
         $('ov-clue').textContent = '';
+        // ...unless the TV rejoined after the wager was set.
+        if (q.ddWager) {
+          $('dd-overlay').classList.add('hidden');
+          $('ov-clue').textContent = q.clue;
+          setClueMedia(q);
+          $('question-overlay').classList.remove('hidden');
+        }
       } else {
         setTimeout(() => {
           $('question-overlay').classList.remove('hidden');
@@ -512,8 +533,41 @@
         }, 350);
       }
     }
+    // ---------- Clue picture / sound ----------
+    const audioEl = $('ov-audio');
+    let soundBlocked = false;
+    function setClueMedia({ image, audio } = {}) {
+      const img = $('ov-image');
+      if (image) img.src = image; else img.removeAttribute('src');
+      img.classList.toggle('hidden', !image);
+      $('ov-body').classList.toggle('has-image', !!image);
+      audioEl.pause();
+      if (audio) { if (audioEl.getAttribute('src') !== audio) audioEl.src = audio; audioEl.currentTime = 0; }
+      else if (audioEl.getAttribute('src')) { audioEl.removeAttribute('src'); audioEl.load(); }
+      $('ov-sound').classList.toggle('hidden', !audio);
+      $('ov-sound').classList.remove('playing');
+      $('ov-sound-label').textContent = 'Listen';
+    }
+    function playSound() {
+      if (!audioEl.getAttribute('src')) return;
+      audioEl.currentTime = 0;
+      audioEl.play().then(() => {
+        soundBlocked = false;
+        $('sound-unlock').classList.add('hidden');
+      }).catch(err => {
+        // Browsers block sound until someone clicks the page once.
+        if (err.name === 'NotAllowedError') { soundBlocked = true; $('sound-unlock').classList.remove('hidden'); }
+        else $('ov-sound-label').textContent = "Sound didn't load";
+      });
+    }
+    audioEl.addEventListener('playing', () => { $('ov-sound').classList.add('playing'); $('ov-sound-label').textContent = 'Playing'; });
+    audioEl.addEventListener('pause', () => { $('ov-sound').classList.remove('playing'); $('ov-sound-label').textContent = 'Listen'; });
+    $('sound-unlock').addEventListener('click', () => { $('sound-unlock').classList.add('hidden'); if (soundBlocked) playSound(); });
+
     function hideQuestionOverlay() {
       clearBoardTimer();
+      setClueMedia({});
+      $('sound-unlock').classList.add('hidden');
       $('question-overlay').classList.add('hidden');
       $('dd-overlay').classList.add('hidden');
       firstBuzzerId = null;
@@ -566,6 +620,11 @@
       el.classList.remove('hidden');
     });
 
+    socket.on('audio-control', ({ action }) => {
+      if (action === 'play') playSound();
+      else { audioEl.pause(); audioEl.currentTime = 0; $('sound-unlock').classList.add('hidden'); }
+    });
+
     socket.on('question-closed', () => {
       if (gameData?.activeQuestion) {
         markCellAnswered(gameData.activeQuestion.catIndex, gameData.activeQuestion.qIndex);
@@ -589,10 +648,11 @@
       fjResultsMap = {};
     });
 
-    socket.on('dd-revealed', ({ playerName, wager, clue }) => {
+    socket.on('dd-revealed', ({ playerName, wager, clue, image, audio }) => {
       $('dd-overlay').classList.add('hidden');
       $('ov-value').textContent = `$${wager}`;
       $('ov-clue').textContent = clue;
+      setClueMedia({ image, audio });
       $('q-hint').classList.add('hidden');
       const b = $('dd-player-banner');
       b.innerHTML = `<span>${escHtml(playerName)} wagers</span><b>$${Number(wager).toLocaleString()}</b>`;

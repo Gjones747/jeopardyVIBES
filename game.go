@@ -18,6 +18,8 @@ type Question struct {
 	Value       Int    `json:"value"`
 	Answered    bool   `json:"answered"`
 	DailyDouble bool   `json:"dailyDouble"`
+	Image       string `json:"image,omitempty"` // optional picture URL shown with the clue
+	Audio       string `json:"audio,omitempty"` // optional sound URL the host plays on the TV
 }
 
 type Category struct {
@@ -34,6 +36,29 @@ type FinalClue struct {
 type Board struct {
 	Categories    []Category `json:"categories"`
 	FinalJeopardy *FinalClue `json:"finalJeopardy,omitempty"`
+}
+
+// Media links must be web URLs or paths on this server, so a board can't
+// smuggle in javascript: or data: URLs.
+func cleanMediaURL(u string) string {
+	u = strings.TrimSpace(u)
+	if len(u) > 2000 {
+		return ""
+	}
+	l := strings.ToLower(u)
+	if strings.HasPrefix(l, "https://") || strings.HasPrefix(l, "http://") || (strings.HasPrefix(u, "/") && !strings.HasPrefix(u, "//")) {
+		return u
+	}
+	return ""
+}
+
+func (b *Board) cleanMedia() {
+	for ci := range b.Categories {
+		for qi := range b.Categories[ci].Questions {
+			q := &b.Categories[ci].Questions[qi]
+			q.Image, q.Audio = cleanMediaURL(q.Image), cleanMediaURL(q.Audio)
+		}
+	}
 }
 
 func (b *Board) question(cat, q int) *Question {
@@ -65,6 +90,8 @@ type ActiveQuestion struct {
 	Category        string  `json:"category"`
 	Clue            string  `json:"clue"`
 	Answer          string  `json:"answer"`
+	Image           string  `json:"image,omitempty"`
+	Audio           string  `json:"audio,omitempty"`
 	Value           int     `json:"value"`
 	DailyDouble     bool    `json:"dailyDouble"`
 	BuzzTimeLimit   int     `json:"buzzTimeLimit"`
@@ -206,6 +233,7 @@ func (s *Server) routes() map[string]Handler {
 		"dd-reveal":            s.host(ddReveal),
 		"answer-result":        s.host(answerResult),
 		"reveal-answer":        s.host(revealAnswer),
+		"audio-control":        s.host(audioControl),
 		"dismiss-question":     s.host(dismissQuestion),
 		"adjust-score":         s.host(adjustScore),
 		"start-final-jeopardy": s.host(startFinal),
@@ -283,6 +311,7 @@ func (s *Server) createGame(c *Conn, data json.RawMessage) any {
 	for i := 0; s.games[code] != nil && i < 100; i++ {
 		code = generateCode()
 	}
+	board.cleanMedia()
 	g := &Game{Code: code, Board: board, State: "lobby", host: c, members: map[*Conn]bool{}}
 	s.games[code] = g
 	s.enterRoom(c, g)
@@ -348,6 +377,8 @@ func selectQuestion(g *Game, c *Conn, data json.RawMessage) any {
 		Category:        g.Board.Categories[req.CatIndex].Name,
 		Clue:            q.Clue,
 		Answer:          q.Answer,
+		Image:           q.Image,
+		Audio:           q.Audio,
 		Value:           int(q.Value),
 		DailyDouble:     q.DailyDouble,
 		BuzzTimeLimit:   clamp(or(int(req.BuzzTimeLimit), 30), 5, 120),
@@ -384,6 +415,7 @@ func ddReveal(g *Game, c *Conn, data json.RawMessage) any {
 	g.broadcast("dd-revealed", map[string]any{
 		"playerId": p.ID, "playerName": p.Name, "wager": wager,
 		"clue": g.active.Clue, "answer": g.active.Answer,
+		"image": g.active.Image, "audio": g.active.Audio,
 	})
 	return nil
 }
@@ -468,6 +500,20 @@ func revealAnswer(g *Game, c *Conn, _ json.RawMessage) any {
 	if g.active != nil {
 		g.broadcast("answer-revealed", map[string]any{"answer": g.active.Answer})
 	}
+	return nil
+}
+
+// Host plays or stops the active clue's sound on the TV.
+func audioControl(g *Game, c *Conn, data json.RawMessage) any {
+	var req struct{ Action string }
+	json.Unmarshal(data, &req)
+	if g.active == nil || g.active.Audio == "" || (req.Action != "play" && req.Action != "stop") {
+		return nil
+	}
+	if g.active.DailyDouble && g.active.DDWager == nil {
+		return nil // the clue isn't on the TV yet
+	}
+	g.broadcast("audio-control", map[string]any{"action": req.Action})
 	return nil
 }
 
@@ -611,6 +657,7 @@ func updateBoard(g *Game, c *Conn, data json.RawMessage) any {
 				continue
 			}
 			lq.Clue, lq.Answer = q.Clue, q.Answer
+			lq.Image, lq.Audio = cleanMediaURL(q.Image), cleanMediaURL(q.Audio)
 			if !lq.Answered {
 				lq.DailyDouble = q.DailyDouble
 			}
@@ -626,6 +673,7 @@ func updateBoard(g *Game, c *Conn, data json.RawMessage) any {
 func resetGame(g *Game, c *Conn, data json.RawMessage) any {
 	var b Board
 	if json.Unmarshal(data, &b) == nil && b.Categories != nil {
+		b.cleanMedia()
 		g.Board = b
 	}
 	g.active = nil

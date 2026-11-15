@@ -137,6 +137,9 @@
     .ce-box .note.bad { color: var(--bad); }
     .ce-box img { max-height: 140px; max-width: 100%; align-self: flex-start; border-radius: var(--r); border: 1px solid var(--line); object-fit: contain; }
     .ce-box audio { height: 36px; width: 100%; }
+    .ce-yt { display: none; }
+    .ce-yt.yt-on { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r); overflow: hidden; background: #000; }
+    .ce-yt iframe { width: 100%; height: 100%; border: 0; display: block; }
     .ce-clip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .ce-clip .t { display: flex; gap: 6px; }
     .ce-clip .t input { min-width: 0; font-variant-numeric: tabular-nums; }
@@ -472,6 +475,7 @@
         <div class="note" id="ce-audio-note">You play it on the TV from the host panel</div>
         <div id="ce-audio-tools" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
           <audio id="ce-audio-prev" controls preload="metadata"></audio>
+          <div class="ce-yt" id="ce-yt"></div>
           <div class="ce-clip">
             <div><label for="ce-a-start">Start at</label><div class="t"><input type="text" id="ce-a-start" placeholder="0:00" inputmode="decimal" autocomplete="off"><button type="button" class="btn btn-sm" onclick="markClip('start')" title="Use the preview's current position">Set to now</button></div></div>
             <div><label for="ce-a-end">Stop at</label><div class="t"><input type="text" id="ce-a-end" placeholder="End" inputmode="decimal" autocomplete="off"><button type="button" class="btn btn-sm" onclick="markClip('end')" title="Use the preview's current position">Set to now</button></div></div>
@@ -539,6 +543,7 @@
   <script src="/presets.js"></script>
   <script src="/awards.js"></script>
   <script src="/socket.js"></script>
+  <script src="/media.js"></script>
   <script>
     const socket = io();
     const NUM_CATS = 6;
@@ -809,45 +814,46 @@
       const start = parseTime($('ce-a-start').value), end = parseTime($('ce-a-end').value);
       if (!$('ce-audio').value.trim()) return { start: null, end: null };
       if (Number.isNaN(start) || Number.isNaN(end)) return { error: 'Use a time like 0:12 or 12.5' };
-      const dur = $('ce-audio-prev').duration;
-      if (start != null && isFinite(dur) && start >= dur) return { error: `Start is past the end of the sound (${fmtTime(dur)})` };
+      const dur = clipDuration();
+      if (start != null && dur && start >= dur) return { error: `Start is past the end of the sound (${fmtTime(dur)})` };
       if (start != null && end != null && end <= start) return { error: 'Stop has to be after start' };
       return { start: start || null, end };
     }
     function refreshClipNote() {
       const n = $('ce-clip-note'), clip = readClip();
-      const dur = $('ce-audio-prev').duration;
+      const dur = clipDuration();
       n.classList.toggle('bad', !!clip.error);
       if (clip.error) { n.textContent = clip.error; return; }
-      const from = clip.start || 0, to = clip.end ?? (isFinite(dur) ? dur : null);
+      const from = clip.start || 0, to = clip.end ?? dur;
       n.textContent = clip.start == null && clip.end == null
-        ? `Plays the whole sound${isFinite(dur) ? ` (${fmtTime(dur)})` : ''}`
-        : `Plays ${fmtTime(from)} to ${to == null ? 'the end' : fmtTime(to)}${to != null ? ` · ${Math.round((to - from) * 10) / 10}s long` : ''}`;
+        ? `Plays the whole ${cePlayer.isYouTube() ? 'video' : 'sound'}${dur ? ` (${fmtTime(dur)})` : ''}`
+        : `Plays ${fmtTime(from)} to ${to == null ? 'the end' : fmtTime(to)}${to != null ? ` · ${to - from < 60 ? Math.round((to - from) * 10) / 10 + 's' : fmtTime(to - from)} long` : ''}`;
     }
     function markClip(which) {
-      const t = $('ce-audio-prev').currentTime || 0;
+      const t = cePlayer.time() || 0;
       $(which === 'start' ? 'ce-a-start' : 'ce-a-end').value = fmtTime(t);
       refreshClipNote();
     }
-    // Plays el from start and pauses it at end.
-    let clipEnd = null, clipTimer = null;
-    function clipCheck() {
-      const el = $('ce-audio-prev');
-      clearTimeout(clipTimer);
-      if (clipEnd == null || el.paused) return;
-      const left = clipEnd - el.currentTime;
-      if (left <= 0.02) { el.pause(); clipEnd = null; return; }
-      clipTimer = setTimeout(clipCheck, Math.max(10, left * 1000 / (el.playbackRate || 1) - 15));
-    }
-    function playRange(el, start, end) {
-      clipEnd = end ?? null;
-      el.currentTime = start || 0;
-      el.play().catch(() => {});
-    }
+    // Preview player for the editor: plays a direct sound link or a YouTube link.
+    const cePlayer = Media.ClipPlayer({
+      audio: $('ce-audio-prev'),
+      ytBox: $('ce-yt'),
+      onChange: (state, detail) => {
+        if (state === 'loaded' || state === 'playing') refreshClipNote();
+        if (state === 'error' && $('ce-audio').value.trim()) {
+          $('ce-audio-note').textContent = detail === 'embed' ? "This video's owner doesn't allow it to play on other sites. Try another upload."
+            : detail === 'youtube' ? "That YouTube video didn't load. Check the link (and that this computer is online)."
+            : "That sound didn't load. Use a direct link to an .mp3 or similar, or a YouTube link.";
+          $('ce-audio-note').classList.add('bad');
+        }
+      },
+    });
+    const clipDuration = () => { const d = cePlayer.duration(); return isFinite(d) && d > 0 ? d : null; };
+    let ceAudSrc = '';
     function previewClip() {
       const clip = readClip();
       if (clip.error) { refreshClipNote(); return; }
-      playRange($('ce-audio-prev'), clip.start, clip.end);
+      cePlayer.play(clip.start || 0, clip.end);
     }
     function openMediaBox(kind) {
       $(`ce-${kind}-box`).classList.remove('hidden');
@@ -863,7 +869,7 @@
 
     function refreshMediaPreview() {
       const img = $('ce-image').value.trim(), aud = $('ce-audio').value.trim();
-      const imgEl = $('ce-image-prev'), audEl = $('ce-audio-prev');
+      const imgEl = $('ce-image-prev');
       $('ce-add-image').classList.toggle('hidden', !$('ce-image-box').classList.contains('hidden'));
       $('ce-add-audio').classList.toggle('hidden', !$('ce-audio-box').classList.contains('hidden'));
       $('ce-add').classList.toggle('hidden', $('ce-add-image').classList.contains('hidden') && $('ce-add-audio').classList.contains('hidden'));
@@ -873,13 +879,20 @@
         n.classList.toggle('bad', !!(url && !ok));
       };
       setNote('ce-image-note', img, mediaOK(img), 'Shown on the TV above the clue');
-      setNote('ce-audio-note', aud, mediaOK(aud), 'You play it on the TV from the host panel');
+      setNote('ce-audio-note', aud, mediaOK(aud), Media.youtubeId(aud) ? 'YouTube link: the video shows on the TV while it plays' : 'You play it on the TV from the host panel');
       const showImg = img && mediaOK(img), showAud = aud && mediaOK(aud);
       if (showImg && imgEl.getAttribute('src') !== img) imgEl.src = img;
       if (!showImg) imgEl.removeAttribute('src');
       imgEl.classList.toggle('hidden', !showImg);
-      if (showAud && audEl.getAttribute('src') !== aud) audEl.src = aud;
-      if (!showAud && audEl.getAttribute('src')) { audEl.pause(); audEl.removeAttribute('src'); audEl.load(); }
+      const src = showAud ? aud : '';
+      if (src !== ceAudSrc) {
+        ceAudSrc = src;
+        // A YouTube link with ?t= fills in the start time, if none is set yet.
+        const t = Media.youtubeTime(src);
+        if (t && Media.youtubeId(src) && !$('ce-a-start').value.trim()) $('ce-a-start').value = fmtTime(t);
+        cePlayer.setSource(src);
+      }
+      $('ce-audio-prev').classList.toggle('hidden', cePlayer.isYouTube());
       $('ce-audio-tools').classList.toggle('hidden', !showAud);
       refreshClipNote();
     }
@@ -889,7 +902,7 @@
       if (save && !commitClueEditor()) return;
       const { c, r } = editing;
       editing = null;
-      $('ce-audio-prev').pause();
+      cePlayer.pause();
       $('clue-editor').classList.add('hidden');
       $(`qc-${c}-${r}`).focus();
     }
@@ -1690,12 +1703,7 @@
     $('board-name').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
     ['ce-image', 'ce-audio'].forEach(id => $(id).addEventListener('input', refreshMediaPreview));
     ['ce-a-start', 'ce-a-end'].forEach(id => $(id).addEventListener('input', refreshClipNote));
-    $('ce-audio-prev').addEventListener('loadedmetadata', refreshClipNote);
-    ['playing', 'timeupdate'].forEach(ev => $('ce-audio-prev').addEventListener(ev, clipCheck));
-    // Scrubbing or pressing play on the preview yourself plays freely.
-    $('ce-audio-prev').addEventListener('seeking', () => { if (clipEnd != null && Math.abs($('ce-audio-prev').currentTime - (parseTime($('ce-a-start').value) || 0)) > 0.05) clipEnd = null; });
     $('ce-image-prev').addEventListener('error', () => { if ($('ce-image').value.trim()) { $('ce-image-note').textContent = "That picture didn't load. Use a direct link to the image file."; $('ce-image-note').classList.add('bad'); } });
-    $('ce-audio-prev').addEventListener('error', () => { if ($('ce-audio').value.trim()) { $('ce-audio-note').textContent = "That sound didn't load. Use a direct link to an .mp3 or similar."; $('ce-audio-note').classList.add('bad'); } });
     $('clue-editor').addEventListener('keydown', e => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeClueEditor(false); }
       else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); closeClueEditor(true); }

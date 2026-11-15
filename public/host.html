@@ -822,10 +822,11 @@
         $(`cat-name-${c}`).value = cat.name || '';
         cat.questions.forEach((q, r) => {
           if (r >= VALUES.length) return;
-          $(`clue-${c}-${r}`).value = q.clue || '';
-          $(`answer-${c}-${r}`).value = q.answer || '';
-          $(`img-${c}-${r}`).value = q.image || '';
-          $(`aud-${c}-${r}`).value = q.audio || '';
+          // Blank cells are saved as "(empty)" / "(none)" placeholders; load them back as blank.
+          $(`clue-${c}-${r}`).value = q.clue && q.clue !== '(empty)' ? q.clue : '';
+          $(`answer-${c}-${r}`).value = q.answer && q.answer !== '(none)' ? q.answer : '';
+          $(`img-${c}-${r}`).value = q.image && mediaOK(q.image) ? q.image.trim() : '';
+          $(`aud-${c}-${r}`).value = q.audio && mediaOK(q.audio) ? q.audio.trim() : '';
           $(`dd-${c}-${r}`).checked = q.dailyDouble || false;
         });
       });

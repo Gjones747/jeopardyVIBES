@@ -256,6 +256,12 @@ func TestClueMedia(t *testing.T) {
 	b := testBoard()
 	b.Categories[0].Questions[0].Image = "https://example.com/cat.png"
 	b.Categories[0].Questions[0].Audio = "/media/meow.mp3"
+	b.Categories[0].Questions[0].AudioStart = 2.5
+	b.Categories[0].Questions[0].AudioEnd = 7
+	b.Categories[0].Questions[1].AudioStart = -3 // bad range on a bad link: all dropped
+	b.Categories[1].Questions[1].Audio = "https://example.com/a.mp3"
+	b.Categories[1].Questions[1].AudioStart = 9
+	b.Categories[1].Questions[1].AudioEnd = 4 // end before start: plays to the end
 	b.Categories[0].Questions[1].Image = "javascript:alert(1)"
 	b.Categories[0].Questions[1].Audio = "//evil.example/x.mp3"
 
@@ -268,7 +274,7 @@ func TestClueMedia(t *testing.T) {
 	host.emit("select-question", map[string]any{"catIndex": 0, "qIndex": 0})
 	var q ActiveQuestion
 	json.Unmarshal(host.next("question-active").D, &q)
-	if q.Image != "https://example.com/cat.png" || q.Audio != "/media/meow.mp3" {
+	if q.Image != "https://example.com/cat.png" || q.Audio != "/media/meow.mp3" || q.AudioStart != 2.5 || q.AudioEnd != 7 {
 		t.Fatalf("media not passed through: %+v", q)
 	}
 	host.emit("audio-control", map[string]string{"action": "play"})
@@ -285,5 +291,14 @@ func TestClueMedia(t *testing.T) {
 	json.Unmarshal(host.next("question-active").D, &q)
 	if q.Image != "" || q.Audio != "" {
 		t.Fatalf("unsafe media URLs kept: %+v", q)
+	}
+	host.emit("dismiss-question", nil)
+	host.next("question-closed")
+
+	host.emit("select-question", map[string]any{"catIndex": 1, "qIndex": 1})
+	q = ActiveQuestion{}
+	json.Unmarshal(host.next("question-active").D, &q)
+	if q.AudioStart != 9 || q.AudioEnd != 0 {
+		t.Fatalf("bad clip range kept: %+v", q)
 	}
 }

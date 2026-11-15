@@ -80,10 +80,11 @@ While a clue is open, the host can judge with the keyboard: **C** correct, **W**
 
 ### Pictures and sounds
 
-Any clue can have a **Picture link** and a **Sound link** (set them in the clue editor). The board only stores the links, so saved boards stay small in browser storage.
+In the clue editor, click **+ Add picture** or **+ Add sound** and paste a link. The board only stores the links, so saved boards stay small in browser storage.
 
 - Use a direct link to the file (ending in `.jpg`, `.png`, `.gif`, `.mp3`, …), not a share page. Links must start with `http://`, `https://` or `/`.
 - The picture shows on the TV above the clue. The host plays the sound on the TV with **Play sound on TV** (or **P**).
+- To play only part of a sound, set **Start at** and **Stop at** (like `0:12` or `12.5`). Play the preview and click **Set to now** to mark the spot, then **Play clip** to check it. Leave them blank to play the whole sound.
 - Browsers block sound until someone clicks the TV page once. If that happens, the TV shows a button to turn sound on.
 - With no internet, outside links won't load.
 

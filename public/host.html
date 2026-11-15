@@ -128,18 +128,24 @@
     .ce-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .ce-foot .spacer { flex: 1; }
     .ce-hint { color: var(--faint); font-size: 0.78rem; }
-    .ce-media { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .ce-media input { font-size: 0.9rem; }
-    .ce-media .note { color: var(--faint); font-size: 0.75rem; margin-top: 4px; }
-    .ce-media .note.bad { color: var(--bad); }
-    .ce-preview { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .ce-preview img { max-height: 120px; max-width: 220px; border-radius: var(--r); border: 1px solid var(--line); background: var(--ink); object-fit: contain; }
-    .ce-preview audio { height: 36px; max-width: 100%; }
+    .ce-add { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ce-box { border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--ink); }
+    .ce-box-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .ce-box-head label { margin: 0; }
+    .ce-box input { font-size: 0.9rem; }
+    .ce-box .note { color: var(--faint); font-size: 0.75rem; }
+    .ce-box .note.bad { color: var(--bad); }
+    .ce-box img { max-height: 140px; max-width: 100%; align-self: flex-start; border-radius: var(--r); border: 1px solid var(--line); object-fit: contain; }
+    .ce-box audio { height: 36px; width: 100%; }
+    .ce-clip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ce-clip .t { display: flex; gap: 6px; }
+    .ce-clip .t input { min-width: 0; font-variant-numeric: tabular-nums; }
+    .ce-clip-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .q-media { display: flex; gap: 4px; }
     .q-media span { font-size: 0.62rem; font-weight: 700; padding: 2px 5px; border-radius: 5px; background: var(--ink-3); color: var(--paper-2); letter-spacing: 0.04em; }
     .aq-media { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: -6px 0 16px; }
     .aq-media img { max-height: 140px; max-width: 260px; border-radius: var(--r); border: 1px solid var(--line); object-fit: contain; background: var(--ink); }
-    @media (max-width: 560px) { .ce-media { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .ce-clip { grid-template-columns: 1fr; } }
 
 
     /* ---------- Game console ---------- */
@@ -346,6 +352,7 @@
             <span id="aq-audio" class="hidden" style="display:flex; gap:8px;">
               <button class="btn btn-primary" onclick="audioControl('play')">▶ Play sound on TV <kbd>P</kbd></button>
               <button class="btn btn-ghost" onclick="audioControl('stop')">■ Stop</button>
+              <span class="muted small" id="aq-clip" style="align-self:center;"></span>
             </span>
           </div>
           <div class="answer-key"><span class="eyebrow">Answer · only you see this</span><span class="k" id="aq-answer"></span></div>
@@ -449,13 +456,31 @@
       </div>
       <div><label for="ce-clue">Clue</label><textarea id="ce-clue" maxlength="300" placeholder="The clue players see on the TV"></textarea></div>
       <div><label for="ce-answer">Answer</label><input type="text" id="ce-answer" maxlength="200" placeholder="What is …?" autocomplete="off"></div>
-      <div class="ce-media">
-        <div><label for="ce-image">Picture link <span class="muted small">(optional)</span></label><input type="url" id="ce-image" placeholder="https://…/photo.jpg" autocomplete="off" spellcheck="false"><div class="note" id="ce-image-note">Shown on the TV above the clue</div></div>
-        <div><label for="ce-audio">Sound link <span class="muted small">(optional)</span></label><input type="url" id="ce-audio" placeholder="https://…/clip.mp3" autocomplete="off" spellcheck="false"><div class="note" id="ce-audio-note">You play it on the TV from the host panel</div></div>
+      <div class="ce-add" id="ce-add">
+        <button type="button" class="btn btn-sm" id="ce-add-image" onclick="openMediaBox('image')">+ Add picture</button>
+        <button type="button" class="btn btn-sm" id="ce-add-audio" onclick="openMediaBox('audio')">+ Add sound</button>
       </div>
-      <div class="ce-preview hidden" id="ce-preview">
+      <div class="ce-box hidden" id="ce-image-box">
+        <div class="ce-box-head"><label for="ce-image">Picture link</label><button type="button" class="btn btn-sm btn-ghost" onclick="removeMedia('image')">Remove</button></div>
+        <input type="url" id="ce-image" placeholder="Paste a link to an image, like https://…/photo.jpg" autocomplete="off" spellcheck="false">
+        <div class="note" id="ce-image-note">Shown on the TV above the clue</div>
         <img id="ce-image-prev" alt="Picture preview" class="hidden">
-        <audio id="ce-audio-prev" controls preload="none" class="hidden"></audio>
+      </div>
+      <div class="ce-box hidden" id="ce-audio-box">
+        <div class="ce-box-head"><label for="ce-audio">Sound link</label><button type="button" class="btn btn-sm btn-ghost" onclick="removeMedia('audio')">Remove</button></div>
+        <input type="url" id="ce-audio" placeholder="Paste a link to a sound, like https://…/clip.mp3" autocomplete="off" spellcheck="false">
+        <div class="note" id="ce-audio-note">You play it on the TV from the host panel</div>
+        <div id="ce-audio-tools" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
+          <audio id="ce-audio-prev" controls preload="metadata"></audio>
+          <div class="ce-clip">
+            <div><label for="ce-a-start">Start at</label><div class="t"><input type="text" id="ce-a-start" placeholder="0:00" inputmode="decimal" autocomplete="off"><button type="button" class="btn btn-sm" onclick="markClip('start')" title="Use the preview's current position">Set to now</button></div></div>
+            <div><label for="ce-a-end">Stop at</label><div class="t"><input type="text" id="ce-a-end" placeholder="End" inputmode="decimal" autocomplete="off"><button type="button" class="btn btn-sm" onclick="markClip('end')" title="Use the preview's current position">Set to now</button></div></div>
+          </div>
+          <div class="ce-clip-foot">
+            <button type="button" class="btn btn-sm" id="ce-clip-play" onclick="previewClip()">▶ Play clip</button>
+            <span class="note" id="ce-clip-note">Plays the whole sound</span>
+          </div>
+        </div>
       </div>
       <label class="ce-dd"><input type="checkbox" id="ce-dd">Make this the Daily Double <span class="muted small">(only you see it)</span></label>
       <div class="ce-foot">
@@ -668,6 +693,8 @@
             <textarea id="answer-${c}-${r}" tabindex="-1"></textarea>
             <input type="text" id="img-${c}-${r}" tabindex="-1">
             <input type="text" id="aud-${c}-${r}" tabindex="-1">
+            <input type="text" id="as-${c}-${r}" tabindex="-1">
+            <input type="text" id="ae-${c}-${r}" tabindex="-1">
             <input type="checkbox" id="dd-${c}-${r}" tabindex="-1">`);
         }
       });
@@ -725,6 +752,10 @@
       $('ce-answer').value = $(`answer-${c}-${r}`).value;
       $('ce-image').value = $(`img-${c}-${r}`).value;
       $('ce-audio').value = $(`aud-${c}-${r}`).value;
+      $('ce-a-start').value = fmtTime($(`as-${c}-${r}`).value);
+      $('ce-a-end').value = fmtTime($(`ae-${c}-${r}`).value);
+      $('ce-image-box').classList.toggle('hidden', !$('ce-image').value);
+      $('ce-audio-box').classList.toggle('hidden', !$('ce-audio').value);
       refreshMediaPreview();
       $('ce-dd').checked = $(`dd-${c}-${r}`).checked;
       const idx = c * VALUES.length + r;
@@ -736,25 +767,106 @@
     }
 
     function commitClueEditor() {
-      if (!editing) return;
+      if (!editing) return true;
+      const clip = readClip();
+      if (clip.error) { refreshClipNote(); $('ce-a-start').focus(); return false; }
       const { c, r } = editing;
       $(`clue-${c}-${r}`).value = $('ce-clue').value.trim();
       $(`answer-${c}-${r}`).value = $('ce-answer').value.trim();
       $(`img-${c}-${r}`).value = mediaOK($('ce-image').value) ? $('ce-image').value.trim() : '';
       $(`aud-${c}-${r}`).value = mediaOK($('ce-audio').value) ? $('ce-audio').value.trim() : '';
+      const hasAud = !!$(`aud-${c}-${r}`).value;
+      $(`as-${c}-${r}`).value = hasAud && clip.start ? clip.start : '';
+      $(`ae-${c}-${r}`).value = hasAud && clip.end ? clip.end : '';
       const dd = $('ce-dd').checked;
       // Only one Daily Double per board.
       if (dd) for (let cc = 0; cc < NUM_CATS; cc++) for (let rr = 0; rr < VALUES.length; rr++) $(`dd-${cc}-${rr}`).checked = false;
       $(`dd-${c}-${r}`).checked = dd;
       refreshFill();
+      return true;
     }
 
     // Same rule as the server: a web link or a path on this server.
     const mediaOK = u => { u = u.trim(); return /^https?:\/\//i.test(u) || (u.startsWith('/') && !u.startsWith('//')); };
 
+    // "1:23.5" / "83.5" -> seconds. Blank -> null. Anything else -> NaN.
+    function parseTime(v) {
+      v = String(v ?? '').trim();
+      if (!v) return null;
+      const m = v.match(/^(?:(\d+):)?(\d+(?:\.\d*)?)$/);
+      if (!m) return NaN;
+      const sec = (m[1] ? parseInt(m[1], 10) * 60 : 0) + parseFloat(m[2]);
+      return m[1] && parseFloat(m[2]) >= 60 ? NaN : sec;
+    }
+    // seconds -> "1:23.5"
+    function fmtTime(sec) {
+      if (sec === '' || sec == null || isNaN(sec)) return '';
+      sec = Math.max(0, Math.round(Number(sec) * 10) / 10);
+      const m = Math.floor(sec / 60), s = sec - m * 60;
+      return `${m}:${s < 10 ? '0' : ''}${Number.isInteger(s) ? s : s.toFixed(1)}`;
+    }
+    function readClip() {
+      const start = parseTime($('ce-a-start').value), end = parseTime($('ce-a-end').value);
+      if (!$('ce-audio').value.trim()) return { start: null, end: null };
+      if (Number.isNaN(start) || Number.isNaN(end)) return { error: 'Use a time like 0:12 or 12.5' };
+      const dur = $('ce-audio-prev').duration;
+      if (start != null && isFinite(dur) && start >= dur) return { error: `Start is past the end of the sound (${fmtTime(dur)})` };
+      if (start != null && end != null && end <= start) return { error: 'Stop has to be after start' };
+      return { start: start || null, end };
+    }
+    function refreshClipNote() {
+      const n = $('ce-clip-note'), clip = readClip();
+      const dur = $('ce-audio-prev').duration;
+      n.classList.toggle('bad', !!clip.error);
+      if (clip.error) { n.textContent = clip.error; return; }
+      const from = clip.start || 0, to = clip.end ?? (isFinite(dur) ? dur : null);
+      n.textContent = clip.start == null && clip.end == null
+        ? `Plays the whole sound${isFinite(dur) ? ` (${fmtTime(dur)})` : ''}`
+        : `Plays ${fmtTime(from)} to ${to == null ? 'the end' : fmtTime(to)}${to != null ? ` · ${Math.round((to - from) * 10) / 10}s long` : ''}`;
+    }
+    function markClip(which) {
+      const t = $('ce-audio-prev').currentTime || 0;
+      $(which === 'start' ? 'ce-a-start' : 'ce-a-end').value = fmtTime(t);
+      refreshClipNote();
+    }
+    // Plays el from start and pauses it at end.
+    let clipEnd = null, clipTimer = null;
+    function clipCheck() {
+      const el = $('ce-audio-prev');
+      clearTimeout(clipTimer);
+      if (clipEnd == null || el.paused) return;
+      const left = clipEnd - el.currentTime;
+      if (left <= 0.02) { el.pause(); clipEnd = null; return; }
+      clipTimer = setTimeout(clipCheck, Math.max(10, left * 1000 / (el.playbackRate || 1) - 15));
+    }
+    function playRange(el, start, end) {
+      clipEnd = end ?? null;
+      el.currentTime = start || 0;
+      el.play().catch(() => {});
+    }
+    function previewClip() {
+      const clip = readClip();
+      if (clip.error) { refreshClipNote(); return; }
+      playRange($('ce-audio-prev'), clip.start, clip.end);
+    }
+    function openMediaBox(kind) {
+      $(`ce-${kind}-box`).classList.remove('hidden');
+      refreshMediaPreview();
+      setTimeout(() => $(`ce-${kind}`).focus(), 0);
+    }
+    function removeMedia(kind) {
+      $(`ce-${kind}`).value = '';
+      if (kind === 'audio') { $('ce-a-start').value = ''; $('ce-a-end').value = ''; }
+      $(`ce-${kind}-box`).classList.add('hidden');
+      refreshMediaPreview();
+    }
+
     function refreshMediaPreview() {
       const img = $('ce-image').value.trim(), aud = $('ce-audio').value.trim();
       const imgEl = $('ce-image-prev'), audEl = $('ce-audio-prev');
+      $('ce-add-image').classList.toggle('hidden', !$('ce-image-box').classList.contains('hidden'));
+      $('ce-add-audio').classList.toggle('hidden', !$('ce-audio-box').classList.contains('hidden'));
+      $('ce-add').classList.toggle('hidden', $('ce-add-image').classList.contains('hidden') && $('ce-add-audio').classList.contains('hidden'));
       const setNote = (id, url, ok, idle) => {
         const n = $(id);
         n.textContent = url && !ok ? 'Paste a link that starts with https://' : idle;
@@ -767,14 +879,14 @@
       if (!showImg) imgEl.removeAttribute('src');
       imgEl.classList.toggle('hidden', !showImg);
       if (showAud && audEl.getAttribute('src') !== aud) audEl.src = aud;
-      if (!showAud) { audEl.pause(); audEl.removeAttribute('src'); audEl.load(); }
-      audEl.classList.toggle('hidden', !showAud);
-      $('ce-preview').classList.toggle('hidden', !showImg && !showAud);
+      if (!showAud && audEl.getAttribute('src')) { audEl.pause(); audEl.removeAttribute('src'); audEl.load(); }
+      $('ce-audio-tools').classList.toggle('hidden', !showAud);
+      refreshClipNote();
     }
 
     function closeClueEditor(save) {
       if (!editing) return;
-      if (save) commitClueEditor();
+      if (save && !commitClueEditor()) return;
       const { c, r } = editing;
       editing = null;
       $('ce-audio-prev').pause();
@@ -785,7 +897,7 @@
     // Save this clue and move to the previous/next one (down the column, then across).
     function stepClueEditor(dir) {
       if (!editing) return;
-      commitClueEditor();
+      if (!commitClueEditor()) return;
       const total = NUM_CATS * VALUES.length;
       const idx = editing.c * VALUES.length + editing.r + dir;
       if (idx < 0 || idx >= total) { closeClueEditor(false); return; }
@@ -805,7 +917,12 @@
             dailyDouble: $(`dd-${c}-${r}`).checked,
           };
           if (image) q.image = image;
-          if (audio) q.audio = audio;
+          if (audio) {
+            q.audio = audio;
+            const as = parseFloat($(`as-${c}-${r}`).value), ae = parseFloat($(`ae-${c}-${r}`).value);
+            if (as > 0) q.audioStart = as;
+            if (ae > 0) q.audioEnd = ae;
+          }
           return q;
         });
         categories.push({ name, questions });
@@ -827,6 +944,8 @@
           $(`answer-${c}-${r}`).value = q.answer && q.answer !== '(none)' ? q.answer : '';
           $(`img-${c}-${r}`).value = q.image && mediaOK(q.image) ? q.image.trim() : '';
           $(`aud-${c}-${r}`).value = q.audio && mediaOK(q.audio) ? q.audio.trim() : '';
+          $(`as-${c}-${r}`).value = $(`aud-${c}-${r}`).value && q.audioStart > 0 ? q.audioStart : '';
+          $(`ae-${c}-${r}`).value = $(`aud-${c}-${r}`).value && q.audioEnd > 0 ? q.audioEnd : '';
           $(`dd-${c}-${r}`).checked = q.dailyDouble || false;
         });
       });
@@ -841,7 +960,7 @@
     function clearGrid() {
       for (let c = 0; c < NUM_CATS; c++) {
         $(`cat-name-${c}`).value = '';
-        for (let r = 0; r < VALUES.length; r++) { $(`clue-${c}-${r}`).value = ''; $(`answer-${c}-${r}`).value = ''; $(`img-${c}-${r}`).value = ''; $(`aud-${c}-${r}`).value = ''; $(`dd-${c}-${r}`).checked = false; }
+        for (let r = 0; r < VALUES.length; r++) { $(`clue-${c}-${r}`).value = ''; $(`answer-${c}-${r}`).value = ''; $(`img-${c}-${r}`).value = ''; $(`aud-${c}-${r}`).value = ''; $(`as-${c}-${r}`).value = ''; $(`ae-${c}-${r}`).value = ''; $(`dd-${c}-${r}`).checked = false; }
       }
       ['fj-setup-cat', 'fj-setup-clue', 'fj-setup-answer'].forEach(id => $(id).value = '');
       document.querySelectorAll('.q-cell.missing').forEach(el => el.classList.remove('missing'));
@@ -1219,6 +1338,7 @@
       if (q.image) aqImg.src = q.image; else aqImg.removeAttribute('src');
       aqImg.classList.toggle('hidden', !q.image);
       $('aq-audio').classList.toggle('hidden', !q.audio);
+      $('aq-clip').textContent = q.audio && (q.audioStart || q.audioEnd) ? `Plays ${fmtTime(q.audioStart || 0)} to ${q.audioEnd ? fmtTime(q.audioEnd) : 'the end'}` : '';
       $('aq-media').classList.toggle('hidden', !q.image && !q.audio);
       $('buzz-order-list').innerHTML = '<span class="muted small">Nobody yet</span>';
       $('active-q-panel').classList.remove('hidden');
@@ -1569,6 +1689,11 @@
     });
     $('board-name').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
     ['ce-image', 'ce-audio'].forEach(id => $(id).addEventListener('input', refreshMediaPreview));
+    ['ce-a-start', 'ce-a-end'].forEach(id => $(id).addEventListener('input', refreshClipNote));
+    $('ce-audio-prev').addEventListener('loadedmetadata', refreshClipNote);
+    ['playing', 'timeupdate'].forEach(ev => $('ce-audio-prev').addEventListener(ev, clipCheck));
+    // Scrubbing or pressing play on the preview yourself plays freely.
+    $('ce-audio-prev').addEventListener('seeking', () => { if (clipEnd != null && Math.abs($('ce-audio-prev').currentTime - (parseTime($('ce-a-start').value) || 0)) > 0.05) clipEnd = null; });
     $('ce-image-prev').addEventListener('error', () => { if ($('ce-image').value.trim()) { $('ce-image-note').textContent = "That picture didn't load. Use a direct link to the image file."; $('ce-image-note').classList.add('bad'); } });
     $('ce-audio-prev').addEventListener('error', () => { if ($('ce-audio').value.trim()) { $('ce-audio-note').textContent = "That sound didn't load. Use a direct link to an .mp3 or similar."; $('ce-audio-note').classList.add('bad'); } });
     $('clue-editor').addEventListener('keydown', e => {

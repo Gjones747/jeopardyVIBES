@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"math"
 	"math/rand/v2"
 	"sort"
 	"strconv"
@@ -18,8 +19,10 @@ type Question struct {
 	Value       Int    `json:"value"`
 	Answered    bool   `json:"answered"`
 	DailyDouble bool   `json:"dailyDouble"`
-	Image       string `json:"image,omitempty"` // optional picture URL shown with the clue
-	Audio       string `json:"audio,omitempty"` // optional sound URL the host plays on the TV
+	Image       string `json:"image,omitempty"`      // optional picture URL shown with the clue
+	Audio       string `json:"audio,omitempty"`      // optional sound URL the host plays on the TV
+	AudioStart  Num    `json:"audioStart,omitempty"` // seconds into the sound to start at
+	AudioEnd    Num    `json:"audioEnd,omitempty"`   // seconds to stop at; 0 plays to the end
 }
 
 type Category struct {
@@ -52,11 +55,21 @@ func cleanMediaURL(u string) string {
 	return ""
 }
 
+// Keeps only safe links and a sensible clip range (start >= 0, end after start).
+func (q *Question) cleanMedia() {
+	q.Image, q.Audio = cleanMediaURL(q.Image), cleanMediaURL(q.Audio)
+	if q.Audio == "" || q.AudioStart < 0 || math.IsNaN(float64(q.AudioStart)) || math.IsInf(float64(q.AudioStart), 0) {
+		q.AudioStart = 0
+	}
+	if q.Audio == "" || q.AudioEnd <= q.AudioStart || math.IsNaN(float64(q.AudioEnd)) || math.IsInf(float64(q.AudioEnd), 0) {
+		q.AudioEnd = 0
+	}
+}
+
 func (b *Board) cleanMedia() {
 	for ci := range b.Categories {
 		for qi := range b.Categories[ci].Questions {
-			q := &b.Categories[ci].Questions[qi]
-			q.Image, q.Audio = cleanMediaURL(q.Image), cleanMediaURL(q.Audio)
+			b.Categories[ci].Questions[qi].cleanMedia()
 		}
 	}
 }
@@ -92,6 +105,8 @@ type ActiveQuestion struct {
 	Answer          string  `json:"answer"`
 	Image           string  `json:"image,omitempty"`
 	Audio           string  `json:"audio,omitempty"`
+	AudioStart      Num     `json:"audioStart,omitempty"`
+	AudioEnd        Num     `json:"audioEnd,omitempty"`
 	Value           int     `json:"value"`
 	DailyDouble     bool    `json:"dailyDouble"`
 	BuzzTimeLimit   int     `json:"buzzTimeLimit"`
@@ -379,6 +394,8 @@ func selectQuestion(g *Game, c *Conn, data json.RawMessage) any {
 		Answer:          q.Answer,
 		Image:           q.Image,
 		Audio:           q.Audio,
+		AudioStart:      q.AudioStart,
+		AudioEnd:        q.AudioEnd,
 		Value:           int(q.Value),
 		DailyDouble:     q.DailyDouble,
 		BuzzTimeLimit:   clamp(or(int(req.BuzzTimeLimit), 30), 5, 120),
@@ -416,6 +433,7 @@ func ddReveal(g *Game, c *Conn, data json.RawMessage) any {
 		"playerId": p.ID, "playerName": p.Name, "wager": wager,
 		"clue": g.active.Clue, "answer": g.active.Answer,
 		"image": g.active.Image, "audio": g.active.Audio,
+		"audioStart": g.active.AudioStart, "audioEnd": g.active.AudioEnd,
 	})
 	return nil
 }
@@ -657,7 +675,8 @@ func updateBoard(g *Game, c *Conn, data json.RawMessage) any {
 				continue
 			}
 			lq.Clue, lq.Answer = q.Clue, q.Answer
-			lq.Image, lq.Audio = cleanMediaURL(q.Image), cleanMediaURL(q.Audio)
+			lq.Image, lq.Audio, lq.AudioStart, lq.AudioEnd = q.Image, q.Audio, q.AudioStart, q.AudioEnd
+			lq.cleanMedia()
 			if !lq.Answered {
 				lq.DailyDouble = q.DailyDouble
 			}
@@ -752,4 +771,19 @@ func truncate(s string, n int) string {
 		return string(r[:n])
 	}
 	return s
+}
+
+// Num is a float that also accepts numeric strings, and reads anything else
+// as 0 instead of failing the whole message.
+type Num float64
+
+func (n *Num) UnmarshalJSON(b []byte) error {
+	var f float64
+	if json.Unmarshal(b, &f) != nil {
+		var s string
+		json.Unmarshal(b, &s)
+		f, _ = strconv.ParseFloat(strings.TrimSpace(s), 64)
+	}
+	*n = Num(f)
+	return nil
 }

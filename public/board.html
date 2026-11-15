@@ -536,13 +536,25 @@
     // ---------- Clue picture / sound ----------
     const audioEl = $('ov-audio');
     let soundBlocked = false;
-    function setClueMedia({ image, audio } = {}) {
+    let clip = { start: 0, end: 0 }, clipTimer = null;
+    // Pause at the clip's end time. A timer aimed at the end, re-checked on each
+    // timeupdate, so it stops on time even if one of them runs late.
+    function clipCheck() {
+      clearTimeout(clipTimer);
+      if (!clip.end || audioEl.paused) return;
+      const left = clip.end - audioEl.currentTime;
+      if (left <= 0.02) { audioEl.pause(); return; }
+      clipTimer = setTimeout(clipCheck, Math.max(10, left * 1000 - 15));
+    }
+    function setClueMedia({ image, audio, audioStart, audioEnd } = {}) {
+      clip = { start: audioStart > 0 ? audioStart : 0, end: audioEnd > 0 ? audioEnd : 0 };
+      clearTimeout(clipTimer);
       const img = $('ov-image');
       if (image) img.src = image; else img.removeAttribute('src');
       img.classList.toggle('hidden', !image);
       $('ov-body').classList.toggle('has-image', !!image);
       audioEl.pause();
-      if (audio) { if (audioEl.getAttribute('src') !== audio) audioEl.src = audio; audioEl.currentTime = 0; }
+      if (audio) { if (audioEl.getAttribute('src') !== audio) audioEl.src = audio; audioEl.currentTime = clip.start; }
       else if (audioEl.getAttribute('src')) { audioEl.removeAttribute('src'); audioEl.load(); }
       $('ov-sound').classList.toggle('hidden', !audio);
       $('ov-sound').classList.remove('playing');
@@ -550,7 +562,8 @@
     }
     function playSound() {
       if (!audioEl.getAttribute('src')) return;
-      audioEl.currentTime = 0;
+      clearTimeout(clipTimer);
+      audioEl.currentTime = clip.start;
       audioEl.play().then(() => {
         soundBlocked = false;
         $('sound-unlock').classList.add('hidden');
@@ -560,7 +573,9 @@
         else $('ov-sound-label').textContent = "Sound didn't load";
       });
     }
-    audioEl.addEventListener('playing', () => { $('ov-sound').classList.add('playing'); $('ov-sound-label').textContent = 'Playing'; });
+    audioEl.addEventListener('timeupdate', clipCheck);
+    audioEl.addEventListener('playing', () => {
+      clipCheck(); $('ov-sound').classList.add('playing'); $('ov-sound-label').textContent = 'Playing'; });
     audioEl.addEventListener('pause', () => { $('ov-sound').classList.remove('playing'); $('ov-sound-label').textContent = 'Listen'; });
     $('sound-unlock').addEventListener('click', () => { $('sound-unlock').classList.add('hidden'); if (soundBlocked) playSound(); });
 
@@ -622,7 +637,7 @@
 
     socket.on('audio-control', ({ action }) => {
       if (action === 'play') playSound();
-      else { audioEl.pause(); audioEl.currentTime = 0; $('sound-unlock').classList.add('hidden'); }
+      else { clearTimeout(clipTimer); audioEl.pause(); audioEl.currentTime = clip.start; $('sound-unlock').classList.add('hidden'); }
     });
 
     socket.on('question-closed', () => {
@@ -648,11 +663,11 @@
       fjResultsMap = {};
     });
 
-    socket.on('dd-revealed', ({ playerName, wager, clue, image, audio }) => {
+    socket.on('dd-revealed', ({ playerName, wager, clue, image, audio, audioStart, audioEnd }) => {
       $('dd-overlay').classList.add('hidden');
       $('ov-value').textContent = `$${wager}`;
       $('ov-clue').textContent = clue;
-      setClueMedia({ image, audio });
+      setClueMedia({ image, audio, audioStart, audioEnd });
       $('q-hint').classList.add('hidden');
       const b = $('dd-player-banner');
       b.innerHTML = `<span>${escHtml(playerName)} wagers</span><b>$${Number(wager).toLocaleString()}</b>`;

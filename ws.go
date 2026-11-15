@@ -37,7 +37,8 @@ type Conn struct {
 	ID     string
 	out    chan []byte
 	cancel context.CancelFunc
-	game   *Game // room this connection belongs to, if any
+	game   *Game   // room this connection belongs to, if any
+	player *Player // seat this connection plays, if any
 }
 
 func (c *Conn) send(m outMsg) {

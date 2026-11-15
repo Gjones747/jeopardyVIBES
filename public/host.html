@@ -37,6 +37,7 @@
     .sec-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .player-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); }
     .player-row:last-child { border-bottom: none; }
+    .player-row.away .nm, .player-row.away .sc { opacity: .55; }
     .player-row .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .player-row .sc { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
     .adj { display: none; gap: 4px; }
@@ -1535,8 +1536,8 @@
       $('player-count').textContent = players.length;
       const step = activeQuestion?.value || 200;
       $('player-list').innerHTML = players.length ? players.map(p => `
-        <div class="player-row">
-          <span class="nm">${escHtml(p.name)}</span>
+        <div class="player-row${p.connected === false ? ' away' : ''}">
+          <span class="nm">${escHtml(p.name)}${p.connected === false ? ' <span class="muted small">(away)</span>' : ''}</span>
           <span class="sc ${p.score < 0 ? 'neg' : ''}">${money(p.score)}</span>
           <span class="adj">
             <button class="btn btn-sm" onclick="adjustScore('${p.id}', ${step})" title="Add $${step}" aria-label="Add $${step} to ${escHtml(p.name)}">+</button>

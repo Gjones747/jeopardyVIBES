@@ -88,13 +88,16 @@ type Stats struct {
 }
 
 type Player struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Score    int    `json:"score"`
-	Stats    Stats  `json:"stats"`
-	canBuzz  bool
-	fjWager  *int
-	fjAnswer *string
+	ID        string `json:"id"` // stable for the whole game, even across reconnects
+	Name      string `json:"name"`
+	Score     int    `json:"score"`
+	Stats     Stats  `json:"stats"`
+	Connected bool   `json:"connected"`
+	conn      *Conn  // current connection; nil while the player is away
+	token     string // secret the player's browser keeps so it can reclaim this seat
+	canBuzz   bool
+	fjWager   *int
+	fjAnswer  *string
 }
 
 type ActiveQuestion struct {
@@ -281,7 +284,7 @@ func (s *Server) player(h playerHandler) Handler {
 		if c.game == nil {
 			return nil
 		}
-		if p := c.game.player(c.ID); p != nil {
+		if p := c.player; p != nil && p.conn == c {
 			c.game.lastActive = time.Now()
 			h(c.game, p, c, data)
 		}
@@ -307,14 +310,75 @@ func (s *Server) leaveRoom(c *Conn) {
 	if g.host == c {
 		g.host = nil
 	}
-	for i, p := range g.players {
-		if p.ID == c.ID {
-			g.players = append(g.players[:i], g.players[i+1:]...)
-			g.broadcast("player-left", map[string]any{"playerId": p.ID, "playerName": p.Name, "players": g.standings()})
-			break
+	if p := c.player; p != nil && p.conn == c {
+		if g.State == "lobby" {
+			// Nothing to lose yet, so just drop them.
+			for i, pl := range g.players {
+				if pl == p {
+					g.players = append(g.players[:i], g.players[i+1:]...)
+					break
+				}
+			}
+		} else {
+			// Keep their seat (score, wagers, buzz state) so they can rejoin.
+			p.conn, p.Connected = nil, false
+		}
+		g.broadcast("player-left", map[string]any{"playerId": p.ID, "playerName": p.Name, "players": g.standings()})
+	}
+	c.player = nil
+	c.game = nil
+}
+
+// seatFor finds the player a joining connection should take over: the one
+// whose token it holds, or else an away player with the same name.
+func (g *Game) seatFor(name, token string) *Player {
+	if token != "" {
+		for _, p := range g.players {
+			if p.token == token {
+				return p
+			}
 		}
 	}
-	c.game = nil
+	for _, p := range g.players {
+		if !p.Connected && strings.EqualFold(p.Name, name) {
+			return p
+		}
+	}
+	return nil
+}
+
+// rejoin moves player p onto connection c.
+func (s *Server) rejoin(g *Game, p *Player, c *Conn) {
+	if old := p.conn; old != nil && old != c {
+		// Another tab or a connection we haven't noticed is dead yet.
+		old.emit("replaced", nil)
+		delete(g.members, old)
+		old.player, old.game = nil, nil
+	}
+	s.enterRoom(c, g)
+	c.player = p
+	p.conn, p.Connected = c, true
+	g.broadcast("players-update", g.standings())
+}
+
+func (g *Game) joinResponse(p *Player) map[string]any {
+	buzzed := false
+	for _, id := range g.buzzOrder {
+		buzzed = buzzed || id == p.ID
+	}
+	return map[string]any{
+		"success":  true,
+		"name":     p.Name,
+		"playerId": p.ID,
+		"token":    p.token,
+		"game":     g.snapshot(),
+		"me": map[string]any{
+			"canBuzz":  p.canBuzz,
+			"buzzed":   buzzed,
+			"fjWager":  p.fjWager,
+			"fjAnswer": p.fjAnswer,
+		},
+	}
 }
 
 func (s *Server) createGame(c *Conn, data json.RawMessage) any {
@@ -345,7 +409,7 @@ func (s *Server) joinBoard(c *Conn, data json.RawMessage) any {
 }
 
 func (s *Server) joinGame(c *Conn, data json.RawMessage) any {
-	var req struct{ Code, Name string }
+	var req struct{ Code, Name, Token string }
 	json.Unmarshal(data, &req)
 	g := s.games[req.Code]
 	if g == nil {
@@ -355,19 +419,23 @@ func (s *Server) joinGame(c *Conn, data json.RawMessage) any {
 	if name == "" {
 		return map[string]string{"error": "Name required"}
 	}
+	if p := c.player; p != nil && c.game == g {
+		return g.joinResponse(p)
+	}
+	if p := g.seatFor(name, req.Token); p != nil {
+		s.rejoin(g, p, c)
+		return g.joinResponse(p)
+	}
 	for _, p := range g.players {
 		if strings.EqualFold(p.Name, name) {
 			name += strconv.Itoa(rand.IntN(100))
 			break
 		}
 	}
-	if p := g.player(c.ID); p != nil && c.game == g {
-		return map[string]any{"success": true, "name": p.Name, "game": g.snapshot()}
-	}
-	s.enterRoom(c, g)
-	g.players = append(g.players, &Player{ID: c.ID, Name: name})
-	g.broadcast("players-update", g.standings())
-	return map[string]any{"success": true, "name": name, "game": g.snapshot()}
+	p := &Player{ID: c.ID, Name: name, token: newID()}
+	g.players = append(g.players, p)
+	s.rejoin(g, p, c)
+	return g.joinResponse(p)
 }
 
 func startGame(g *Game, c *Conn, _ json.RawMessage) any {

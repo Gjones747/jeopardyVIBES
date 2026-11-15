@@ -280,9 +280,17 @@
     const urlCode = urlParams.get('code');
     const urlName = urlParams.get('name');
 
-    if (urlCode && urlName) {
-      socket.on('connect', () => attemptJoin(urlCode.toUpperCase(), decodeURIComponent(urlName)));
-    } else {
+    // Every (re)connect gets a fresh socket, so claim our seat again. The
+    // server matches us by the token it gave us, or by name if we're away.
+    socket.on('connect', () => {
+      if (roomCode && myName) attemptJoin(roomCode, myName);
+      else if (urlCode && urlName) attemptJoin(urlCode.toUpperCase(), urlName);
+    });
+    const tokenKey = code => `jv-token-${code}`;
+    function loadToken(code) { try { return localStorage.getItem(tokenKey(code)) || ''; } catch (e) { return ''; } }
+    function saveToken(code, token) { try { localStorage.setItem(tokenKey(code), token); } catch (e) {} }
+
+    if (!(urlCode && urlName)) {
       $('join-screen').classList.remove('hidden');
       if (urlCode) $('join-code').value = urlCode.toUpperCase();
     }
@@ -298,7 +306,7 @@
     }
 
     function attemptJoin(code, name) {
-      socket.emit('join-game', { code, name }, (res) => {
+      socket.emit('join-game', { code, name, token: loadToken(code) }, (res) => {
         if (res.error) {
           $('join-error').textContent = res.error === 'Game not found' ? `No game with code ${code}. Double-check the TV.` : res.error;
           $('join-screen').classList.remove('hidden');
@@ -306,8 +314,9 @@
           return;
         }
         myName = res.name;
-        myId = socket.id;
+        myId = res.playerId;
         roomCode = code;
+        saveToken(code, res.token);
         $('join-screen').classList.add('hidden');
         $('player-view').classList.remove('hidden');
         $('conn-bar').classList.add('hidden');
@@ -316,8 +325,36 @@
         updateLeaderboard(res.game.players);
         if (res.game.state === 'lobby') setWaiting("You're in", "Waiting for the host to start.");
         else setWaiting("You're in.", 'Game in progress. Your buzzer lights up on the next clue.');
-        if (res.game.state === 'question-active' && res.game.activeQuestion && !res.game.activeQuestion.dailyDouble) {
+        const me = res.me || {};
+        const aq = res.game.activeQuestion;
+        if (res.game.state === 'question-active' && aq && !aq.dailyDouble) {
           setQuestionActive(true);
+          if (me.buzzed || !me.canBuzz) {
+            canBuzz = false; hasBuzzed = true;
+            const btn = $('buzz-btn');
+            btn.className = 'buzz-btn buzzed'; btn.textContent = me.buzzed ? 'IN' : 'OUT'; btn.disabled = true;
+            $('buzz-status').textContent = me.buzzed ? 'Buzzed. Waiting on the host.' : 'Sit this clue out. The next one is yours.';
+          }
+        } else if (res.game.state === 'final-jeopardy' && res.game.finalJeopardy) {
+          showFinal(res.game.finalJeopardy.category, res.game.players);
+          if (me.fjWager != null) {
+            $('fj-wager-form').classList.add('hidden');
+            $('fj-wager-locked').classList.remove('hidden');
+            $('fj-locked-text').textContent = `Wager locked: $${me.fjWager.toLocaleString()}`;
+          }
+          if (res.game.finalJeopardy.revealed) {
+            $('fj-wager-form').classList.add('hidden');
+            $('fj-wager-locked').classList.add('hidden');
+            $('fj-clue-text').textContent = 'The clue is on the TV.';
+            $('fj-clue-display').classList.remove('hidden');
+          }
+          if (me.fjAnswer != null) {
+            $('fj-answer-form').classList.add('hidden');
+            $('fj-answer-locked').classList.remove('hidden');
+            $('fj-answer-echo').textContent = `“${me.fjAnswer}” — the host is judging.`;
+          }
+        } else if (res.game.state === 'ended') {
+          showOver(res.game.players);
         }
       });
     }
@@ -357,12 +394,12 @@
       const list = $('leaderboard-list');
       if (!players.length) { list.innerHTML = '<div class="muted small" style="padding:8px 0;">No one else yet.</div>'; return; }
       list.innerHTML = players.map((p, i) => `
-        <div class="rank-row ${p.id === socket.id ? 'me' : ''}" id="lb-${p.id}">
+        <div class="rank-row ${p.id === myId ? 'me' : ''}" id="lb-${p.id}">
           <span class="pos">${i + 1}</span>
           <span class="who">${escHtml(p.name)}</span>
           <span class="pts ${p.score < 0 ? 'neg' : ''}">${money(p.score)}</span>
         </div>`).join('');
-      const idx = players.findIndex(p => p.id === socket.id);
+      const idx = players.findIndex(p => p.id === myId);
       if (idx >= 0) {
         myScore = players[idx].score;
         const el = $('my-score');
@@ -375,7 +412,7 @@
 
     function showFeedback(type, name, value) {
       const el = document.createElement('div');
-      const isMe = lastPlayers.find(p => p.name === name)?.id === socket.id;
+      const isMe = lastPlayers.find(p => p.name === name)?.id === myId;
       el.className = `verdict ${type === 'correct' ? 'good' : 'bad'}`;
       el.innerHTML = type === 'correct'
         ? `<div class="v-big">${isMe ? 'You got it' : escHtml(name) + ' got it'}</div><div class="v-sub">+$${value}</div>`
@@ -407,7 +444,7 @@
     socket.on('buzz-update', ({ buzzOrder, firstBuzzerId, firstBuzzerName }) => {
       document.querySelectorAll('.rank-row').forEach(el => el.classList.remove('buzzing'));
       if (firstBuzzerId) $(`lb-${firstBuzzerId}`)?.classList.add('buzzing');
-      const iAmFirst = firstBuzzerId === socket.id;
+      const iAmFirst = firstBuzzerId === myId;
       const btn = $('buzz-btn');
       startPlayerTimer(currentAnswerTimeLimit, 'answer');
       const gap = buzzOrder[1] && buzzOrder[0].ms != null && buzzOrder[1].ms != null ? (buzzOrder[1].ms - buzzOrder[0].ms) / 1000 : null;
@@ -424,7 +461,7 @@
         $('others-buzz-name').textContent = firstBuzzerName;
         $('others-buzzing').classList.remove('hidden');
         if (!hasBuzzed) $('buzz-status').textContent = 'Hold on — you can still buzz if they miss.';
-        else $('buzz-status').textContent = `You're in line (#${buzzOrder.findIndex(b => b.id === socket.id) + 1}).`;
+        else $('buzz-status').textContent = `You're in line (#${buzzOrder.findIndex(b => b.id === myId) + 1}).`;
       }
     });
 
@@ -445,7 +482,7 @@
         btn.className = 'buzz-btn'; btn.textContent = 'BUZZ'; btn.disabled = false;
         $('buzz-status').textContent = 'Still open — your shot.';
         startPlayerTimer(currentBuzzTimeLimit, 'buzz');
-      } else if (hasBuzzed && questionActive && lastPlayers.find(p => p.name === playerName)?.id === socket.id) {
+      } else if (hasBuzzed && questionActive && lastPlayers.find(p => p.name === playerName)?.id === myId) {
         btn.className = 'buzz-btn buzzed'; btn.textContent = 'OUT'; btn.disabled = true;
         $('buzz-status').textContent = "You're locked out of this clue.";
       }
@@ -465,16 +502,17 @@
     });
 
     socket.on('dd-revealed', ({ playerId, playerName, wager }) => {
-      const me = playerId === socket.id;
+      const me = playerId === myId;
       $('dd-title').textContent = me ? `You're wagering $${wager}` : `${playerName} wagers $${wager}`;
       $('dd-msg').textContent = me ? 'The clue is on the TV. Answer out loud.' : 'Clue is on the TV. No buzzing on this one.';
       setStage('dd-area');
     });
 
-    socket.on('final-jeopardy-started', ({ category, players }) => {
+    socket.on('final-jeopardy-started', ({ category, players }) => showFinal(category, players));
+    function showFinal(category, players) {
       setQuestionActive(false);
       clearPlayerTimer();
-      const me = players.find(p => p.id === socket.id);
+      const me = players.find(p => p.id === myId);
       const maxWager = Math.max(0, me ? me.score : 0);
       $('fj-cat-display').textContent = category;
       $('fj-max-wager').textContent = '$' + maxWager.toLocaleString();
@@ -488,7 +526,7 @@
       $('fj-answer-input').value = '';
       setStage('fj-area');
       updateLeaderboard(players);
-    });
+    }
 
     function setWager(frac) {
       const max = Math.max(0, myScore);
@@ -526,13 +564,22 @@
 
     socket.on('fj-answer-result', ({ players }) => updateLeaderboard(players));
 
-    socket.on('game-ended', ({ players }) => {
+    socket.on('game-ended', ({ players }) => showOver(players));
+    function showOver(players) {
       updateLeaderboard(players);
-      const idx = players.findIndex(p => p.id === socket.id);
+      const idx = players.findIndex(p => p.id === myId);
       $('over-place').textContent = idx >= 0 ? ordinal(idx + 1) : '–';
       $('over-msg').textContent = idx === 0 ? 'You won trivia night. Bragging rights until next Thursday.'
         : `${players[0]?.name || 'Someone'} took it with ${money(players[0]?.score || 0)}. Same time next week.`;
       setStage('st-over');
+    }
+
+    // Another tab or device took over this seat.
+    socket.on('replaced', () => {
+      socket.close();
+      roomCode = '';
+      setWaiting('Playing somewhere else.', `${myName} rejoined from another tab or device. You can close this one.`);
+      $('conn-bar').classList.add('hidden');
     });
 
     socket.on('disconnect', () => { $('conn-bar').classList.remove('hidden'); });

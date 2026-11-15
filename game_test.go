@@ -192,10 +192,10 @@ func TestFullGame(t *testing.T) {
 		t.Fatalf("final score %d", res.NewScore)
 	}
 
-	// A player leaving is announced.
+	// A player dropping mid-game is announced but keeps their seat.
 	bob.ws.CloseNow()
 	json.Unmarshal(host.next("player-left").D, &pm)
-	if len(pm.Players) != 1 {
+	if len(pm.Players) != 2 || pm.Players[1].Connected {
 		t.Fatalf("players after leave %+v", pm.Players)
 	}
 
@@ -301,4 +301,67 @@ func TestClueMedia(t *testing.T) {
 	if q.AudioStart != 9 || q.AudioEnd != 0 {
 		t.Fatalf("bad clip range kept: %+v", q)
 	}
+}
+
+type joinResp struct {
+	Success  bool
+	Name     string
+	PlayerID string
+	Token    string
+	Error    string
+	Game     struct{ Players []Player }
+}
+
+func TestRejoinKeepsSeat(t *testing.T) {
+	ts := httptest.NewServer(newMux(NewServer(time.Minute), 0))
+	defer ts.Close()
+	host := dial(t, ts.URL)
+	var created struct{ Code string }
+	host.call("create-game", testBoard(), &created)
+
+	alice := dial(t, ts.URL)
+	var first joinResp
+	alice.call("join-game", map[string]string{"code": created.Code, "name": "Alice"}, &first)
+	host.emit("start-game", nil)
+	host.next("game-started")
+	host.emit("adjust-score", map[string]any{"playerId": first.PlayerID, "delta": 600})
+	host.next("players-update")
+
+	// Alice's phone drops; she comes back on a new connection with the same name.
+	alice.ws.CloseNow()
+	host.next("player-left")
+	alice2 := dial(t, ts.URL)
+	var again joinResp
+	alice2.call("join-game", map[string]string{"code": created.Code, "name": "alice"}, &again)
+	if again.Name != "Alice" || again.PlayerID != first.PlayerID || len(again.Game.Players) != 1 ||
+		again.Game.Players[0].Score != 600 || !again.Game.Players[0].Connected {
+		t.Fatalf("rejoin %+v", again)
+	}
+
+	// Her new connection can play.
+	host.emit("select-question", map[string]any{"catIndex": 0, "qIndex": 0})
+	alice2.next("question-active")
+	alice2.emit("buzz-in", nil)
+	var bu struct{ FirstBuzzerID string }
+	json.Unmarshal(host.next("buzz-update").D, &bu)
+	if bu.FirstBuzzerID != first.PlayerID {
+		t.Fatalf("buzz from rejoined player %+v", bu)
+	}
+
+	// Someone else can't take a connected player's name...
+	mallory := dial(t, ts.URL)
+	var other joinResp
+	mallory.call("join-game", map[string]string{"code": created.Code, "name": "Alice"}, &other)
+	if other.PlayerID == first.PlayerID || other.Name == "Alice" {
+		t.Fatalf("stole a live seat %+v", other)
+	}
+
+	// ...but Alice's own token reclaims it even before the old socket is noticed dead.
+	alice3 := dial(t, ts.URL)
+	var tok joinResp
+	alice3.call("join-game", map[string]string{"code": created.Code, "name": "Alice", "token": first.Token}, &tok)
+	if tok.PlayerID != first.PlayerID {
+		t.Fatalf("token rejoin %+v", tok)
+	}
+	alice2.next("replaced")
 }

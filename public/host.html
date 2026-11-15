@@ -147,6 +147,10 @@
     .q-media { display: flex; gap: 4px; }
     .q-media span { font-size: 0.62rem; font-weight: 700; padding: 2px 5px; border-radius: 5px; background: var(--ink-3); color: var(--paper-2); letter-spacing: 0.04em; }
     .aq-media { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: -6px 0 16px; }
+    .aq-yt { display: flex; align-items: flex-start; gap: 12px; flex-basis: 100%; }
+    .aq-yt-box { width: 320px; max-width: 100%; aspect-ratio: 16 / 9; flex: none; border-radius: var(--r); overflow: hidden; background: #000; }
+    .aq-yt-box iframe { width: 100%; height: 100%; border: 0; display: block; }
+    .aq-yt .muted { max-width: 34ch; }
     .aq-media img { max-height: 140px; max-width: 260px; border-radius: var(--r); border: 1px solid var(--line); object-fit: contain; background: var(--ink); }
     @media (max-width: 560px) { .ce-clip { grid-template-columns: 1fr; } }
 
@@ -353,10 +357,15 @@
           <div class="aq-media hidden" id="aq-media">
             <img id="aq-image" alt="Clue picture" class="hidden">
             <span id="aq-audio" class="hidden" style="display:flex; gap:8px;">
-              <button class="btn btn-primary" onclick="audioControl('play')">▶ Play sound on TV <kbd>P</kbd></button>
+              <button class="btn btn-primary" id="aq-play" onclick="audioControl('play')">▶ Play sound on TV <kbd>P</kbd></button>
               <button class="btn btn-ghost" onclick="audioControl('stop')">■ Stop</button>
               <span class="muted small" id="aq-clip" style="align-self:center;"></span>
             </span>
+            <div class="aq-yt hidden" id="aq-yt-wrap">
+              <div class="aq-yt-box" id="aq-yt"></div>
+              <div class="muted small">YouTube clip: plays here, so only you see the video. The TV shows ♪ while it plays. If the TV is a screen for this computer, the sound comes out of it too.</div>
+            </div>
+            <audio id="aq-audio-el" class="hidden"></audio>
           </div>
           <div class="answer-key"><span class="eyebrow">Answer · only you see this</span><span class="k" id="aq-answer"></span></div>
 
@@ -879,7 +888,7 @@
         n.classList.toggle('bad', !!(url && !ok));
       };
       setNote('ce-image-note', img, mediaOK(img), 'Shown on the TV above the clue');
-      setNote('ce-audio-note', aud, mediaOK(aud), Media.youtubeId(aud) ? 'YouTube link: the video shows on the TV while it plays' : 'You play it on the TV from the host panel');
+      setNote('ce-audio-note', aud, mediaOK(aud), Media.youtubeId(aud) ? 'YouTube link: plays in your host panel, so only you see the video. The TV shows ♪' : 'You play it on the TV from the host panel');
       const showImg = img && mediaOK(img), showAud = aud && mediaOK(aud);
       if (showImg && imgEl.getAttribute('src') !== img) imgEl.src = img;
       if (!showImg) imgEl.removeAttribute('src');
@@ -1351,6 +1360,10 @@
       if (q.image) aqImg.src = q.image; else aqImg.removeAttribute('src');
       aqImg.classList.toggle('hidden', !q.image);
       $('aq-audio').classList.toggle('hidden', !q.audio);
+      const yt = !!(q.audio && Media.youtubeId(q.audio));
+      $('aq-yt-wrap').classList.toggle('hidden', !yt);
+      $('aq-play').innerHTML = yt ? '▶ Play clip <kbd>P</kbd>' : '▶ Play sound on TV <kbd>P</kbd>';
+      hostPlayer.setSource(yt ? q.audio : '', q.audioStart, q.audioEnd);
       $('aq-clip').textContent = q.audio && (q.audioStart || q.audioEnd) ? `Plays ${fmtTime(q.audioStart || 0)} to ${q.audioEnd ? fmtTime(q.audioEnd) : 'the end'}` : '';
       $('aq-media').classList.toggle('hidden', !q.image && !q.audio);
       $('buzz-order-list').innerHTML = '<span class="muted small">Nobody yet</span>';
@@ -1399,13 +1412,27 @@
     function answerResult(correct) { socket.emit('answer-result', { correct }); }
     function revealAnswer() { socket.emit('reveal-answer'); }
     function dismissQuestion() { socket.emit('dismiss-question'); }
+    // YouTube clips play in the host panel; the TV only shows that it's playing.
+    // Audio files play on the TV.
+    const hostPlayer = Media.ClipPlayer({
+      audio: $('aq-audio-el'),
+      ytBox: $('aq-yt'),
+      onChange: (state, detail) => {
+        if (!activeQuestion?.audio || !hostPlayer.isYouTube()) return;
+        if (state === 'playing') socket.emit('audio-control', { action: 'play' });
+        else if (state === 'paused') socket.emit('audio-control', { action: 'stop' });
+        else if (state === 'error') toast(detail === 'embed' ? "This video's owner doesn't allow it to play on other sites." : "That YouTube video didn't load.");
+      },
+    });
     function audioControl(action) {
       if (!activeQuestion?.audio) return;
       if (activeQuestion.dailyDouble && !ddRevealed) { toast('Show the clue on the TV first'); return; }
+      if (hostPlayer.isYouTube()) { if (action === 'play') hostPlayer.play(); else hostPlayer.stop(); return; }
       socket.emit('audio-control', { action });
     }
 
     function closeQuestionUI() {
+      hostPlayer.setSource('');
       activeQuestion = null;
       clearHostTimer();
       $('active-q-panel').classList.add('hidden');

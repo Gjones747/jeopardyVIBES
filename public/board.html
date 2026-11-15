@@ -113,6 +113,13 @@
     .q-sound { display: inline-flex; align-items: center; gap: 0.8vw; background: var(--board-deep); color: var(--hi); border-radius: 99px; padding: 0.8vh 1.6vw; font-family: var(--display); font-weight: 700; font-size: clamp(1rem, 1.8vw, 2.4rem); text-transform: uppercase; letter-spacing: 0.04em; }
     .q-sound.playing .note { animation: sound-pulse 0.8s ease-in-out infinite alternate; }
     @keyframes sound-pulse { from { opacity: 0.4; } to { opacity: 1; } }
+    /* YouTube player: parked off-screen until it plays, then shown in the clue */
+    .yt-box { display: none; }
+    .yt-box.yt-on { display: block; position: absolute; left: -10000px; top: 0; width: 640px; height: 360px; pointer-events: none; }
+    .yt-box.yt-on.yt-show { position: static; width: min(64vw, 50vh * 16 / 9); height: auto; aspect-ratio: 16 / 9; pointer-events: auto; border-radius: 1vw; overflow: hidden; box-shadow: 0 1vh 3vh rgba(0,0,0,0.35); background: #000; }
+    .yt-box iframe { width: 100%; height: 100%; border: 0; display: block; }
+    .q-body:has(.yt-show) .q-clue { font-size: clamp(1.4rem, 3.2vw, 4.4rem); max-width: 34ch; }
+    .q-body:has(.yt-show) .q-image { display: none; }
     .sound-unlock { position: fixed; left: 50%; bottom: 3vh; transform: translateX(-50%); z-index: 50; background: var(--hi); color: var(--hi-ink); font-weight: 700; font-size: clamp(0.9rem, 1.4vw, 1.8rem); padding: 1.2vh 2vw; border-radius: 99px; border: none; cursor: pointer; font-family: inherit; }
     .q-answer { margin: 0 auto 2vh; background: var(--hi); color: var(--hi-ink); border-radius: 1vw; padding: 1.4vh 2vw; font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2.8vw, 3.6rem); text-align: center; animation: pop 0.25s ease-out; }
     .q-foot { display: flex; align-items: center; justify-content: space-between; gap: 2vw; min-height: 9vh; }
@@ -260,6 +267,7 @@
       </div>
       <div class="q-body" id="ov-body">
         <img class="q-image hidden" id="ov-image" alt="">
+        <div class="yt-box" id="ov-yt"></div>
         <div class="q-sound hidden" id="ov-sound"><span class="note">♪</span><span id="ov-sound-label">Listen</span></div>
         <div class="q-clue" id="ov-clue"></div>
       </div>
@@ -320,6 +328,7 @@
   <script src="/vendor/qrcode.js"></script>
   <script src="/awards.js"></script>
   <script src="/socket.js"></script>
+  <script src="/media.js"></script>
   <script>
     const socket = io();
     let gameData = null;
@@ -534,49 +543,49 @@
       }
     }
     // ---------- Clue picture / sound ----------
-    const audioEl = $('ov-audio');
+    // A YouTube clip shows its video while it plays (YouTube doesn't allow a
+    // hidden player). Otherwise the sound plays with just the ♪ tag.
     let soundBlocked = false;
-    let clip = { start: 0, end: 0 }, clipTimer = null;
-    // Pause at the clip's end time. A timer aimed at the end, re-checked on each
-    // timeupdate, so it stops on time even if one of them runs late.
-    function clipCheck() {
-      clearTimeout(clipTimer);
-      if (!clip.end || audioEl.paused) return;
-      const left = clip.end - audioEl.currentTime;
-      if (left <= 0.02) { audioEl.pause(); return; }
-      clipTimer = setTimeout(clipCheck, Math.max(10, left * 1000 - 15));
-    }
+    const setSoundLabel = (text, playing) => {
+      $('ov-sound-label').textContent = text;
+      $('ov-sound').classList.toggle('playing', !!playing);
+    };
+    const player = Media.ClipPlayer({
+      audio: $('ov-audio'),
+      ytBox: $('ov-yt'),
+      onChange: (state, detail) => {
+        if (state === 'playing') {
+          soundBlocked = false;
+          $('sound-unlock').classList.add('hidden');
+          setSoundLabel('Playing', true);
+        } else if (state === 'paused') {
+          setSoundLabel('Listen');
+          $('ov-yt').classList.remove('yt-show');
+        } else if (state === 'blocked') {
+          // Browsers block sound until someone clicks the page once.
+          soundBlocked = true;
+          $('sound-unlock').classList.remove('hidden');
+          $('ov-yt').classList.remove('yt-show');
+        } else if (state === 'error') {
+          setSoundLabel(detail === 'embed' ? "This video can't play here" : "Sound didn't load");
+          $('ov-yt').classList.remove('yt-show');
+        }
+      },
+    });
     function setClueMedia({ image, audio, audioStart, audioEnd } = {}) {
-      clip = { start: audioStart > 0 ? audioStart : 0, end: audioEnd > 0 ? audioEnd : 0 };
-      clearTimeout(clipTimer);
       const img = $('ov-image');
       if (image) img.src = image; else img.removeAttribute('src');
       img.classList.toggle('hidden', !image);
       $('ov-body').classList.toggle('has-image', !!image);
-      audioEl.pause();
-      if (audio) { if (audioEl.getAttribute('src') !== audio) audioEl.src = audio; audioEl.currentTime = clip.start; }
-      else if (audioEl.getAttribute('src')) { audioEl.removeAttribute('src'); audioEl.load(); }
+      $('ov-yt').classList.remove('yt-show');
+      player.setSource(audio || '', audioStart, audioEnd);
       $('ov-sound').classList.toggle('hidden', !audio);
-      $('ov-sound').classList.remove('playing');
-      $('ov-sound-label').textContent = 'Listen';
+      setSoundLabel(audio && player.isYouTube() ? 'Watch & listen' : 'Listen');
     }
     function playSound() {
-      if (!audioEl.getAttribute('src')) return;
-      clearTimeout(clipTimer);
-      audioEl.currentTime = clip.start;
-      audioEl.play().then(() => {
-        soundBlocked = false;
-        $('sound-unlock').classList.add('hidden');
-      }).catch(err => {
-        // Browsers block sound until someone clicks the page once.
-        if (err.name === 'NotAllowedError') { soundBlocked = true; $('sound-unlock').classList.remove('hidden'); }
-        else $('ov-sound-label').textContent = "Sound didn't load";
-      });
+      if (player.isYouTube()) $('ov-yt').classList.add('yt-show');
+      player.play();
     }
-    audioEl.addEventListener('timeupdate', clipCheck);
-    audioEl.addEventListener('playing', () => {
-      clipCheck(); $('ov-sound').classList.add('playing'); $('ov-sound-label').textContent = 'Playing'; });
-    audioEl.addEventListener('pause', () => { $('ov-sound').classList.remove('playing'); $('ov-sound-label').textContent = 'Listen'; });
     $('sound-unlock').addEventListener('click', () => { $('sound-unlock').classList.add('hidden'); if (soundBlocked) playSound(); });
 
     function hideQuestionOverlay() {
@@ -637,7 +646,7 @@
 
     socket.on('audio-control', ({ action }) => {
       if (action === 'play') playSound();
-      else { clearTimeout(clipTimer); audioEl.pause(); audioEl.currentTime = clip.start; $('sound-unlock').classList.add('hidden'); }
+      else { player.stop(); $('ov-yt').classList.remove('yt-show'); $('sound-unlock').classList.add('hidden'); }
     });
 
     socket.on('question-closed', () => {
